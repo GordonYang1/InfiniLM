@@ -1,0 +1,1072 @@
+(jiuge) y__g@gpua18:~/InfiniLM$ srun -w gpua18 --gres=gpu:1 --time=00:20:00     python /home/y__g/InfiniLM/try/jiexitiqu.py     /home/y__g/fm9g-4B-sft-v1.0-Q8_0.gguf     --extract-weights     --output-dir ./my_weights     --save-report
+正在解析GGUF文件结构...
+✓ 文件头解析完成 - GGUF v3
+✓ 元数据解析完成 - 30 项
+✓ 张量信息解析完成 - 374 个张量
+✓ 架构信息提取完成
+✓ 量化分析完成
+
+================================================================================
+GGUF文件结构深度分析报告
+================================================================================
+
+文件格式信息:
+  魔数: GGUF (0x47475546)
+  版本: 3
+  张量数量: 374
+  元数据条目: 30
+
+模型架构参数:
+  基础架构: llama
+  模型名称: 4b
+  参数规模: 4.1B
+  词汇表大小: 73,448
+  上下文长度: 32,768
+  嵌入维度: 2,560
+  Transformer层数: 62
+  注意力头数: 40
+  KV头数: 4
+  GQA分组比例: 1:10
+  头维度: 64
+  FFN维度: 6,400
+  RoPE频率基数: 1,000,000
+
+量化策略分析:
+  总参数量: 4,129,681,920
+  文件大小: 4.09 GB
+  未压缩大小: 15.38 GB (FP32)
+  压缩比率: 3.76x
+  空间节省: 73.4%
+
+量化类型分布:
+  F32: 125 张量, 320,000 参数 (0.0%)
+  Q8_0: 249 张量, 4,129,361,920 参数 (100.0%)
+    规格: 8位量化，32元素块，1个FP16缩放因子
+    块大小: 32, 每块字节: 34
+
+Q8_0量化详细信息:
+  量化方法: 8位块量化，每32个权重为一组
+  存储格式: 每块包含32个int8值 + 1个float16缩放因子
+  总量化块数: 129,042,560
+  相比FP32压缩比: 3.76x
+
+层级量化模式:
+  attn_norm:
+    F32: 62 层
+  attn_output:
+    Q8_0: 62 层
+  attn_qkv:
+    Q8_0: 62 层
+  ffn_down:
+    Q8_0: 62 层
+  ffn_gate_up:
+    Q8_0: 62 层
+  ffn_norm:
+    F32: 62 层
+
+开始提取权重数据...
+✓ 提取权重: output_norm.weight -> output_norm (F32)
+✓ 提取权重: token_embd.weight -> input_embd (Q8_0)
+✓ 提取权重: blk.0.attn_norm.weight -> attn_norm.0 (F32)
+✓ 提取权重: blk.0.attn_output.weight -> attn_o.0 (Q8_0)
+✓ 提取权重: blk.0.attn_qkv.weight -> attn_qkv.0 (Q8_0)
+✓ 提取权重: blk.0.ffn_down.weight -> ffn_down.0 (Q8_0)
+✓ 提取权重: blk.0.ffn_gate_up.weight -> ffn_gate_up.0 (Q8_0)
+✓ 提取权重: blk.0.ffn_norm.weight -> ffn_norm.0 (F32)
+✓ 提取权重: blk.1.attn_norm.weight -> attn_norm.1 (F32)
+✓ 提取权重: blk.1.attn_output.weight -> attn_o.1 (Q8_0)
+✓ 提取权重: blk.1.attn_qkv.weight -> attn_qkv.1 (Q8_0)
+✓ 提取权重: blk.1.ffn_down.weight -> ffn_down.1 (Q8_0)
+✓ 提取权重: blk.1.ffn_gate_up.weight -> ffn_gate_up.1 (Q8_0)
+✓ 提取权重: blk.1.ffn_norm.weight -> ffn_norm.1 (F32)
+✓ 提取权重: blk.2.attn_norm.weight -> attn_norm.2 (F32)
+✓ 提取权重: blk.2.attn_output.weight -> attn_o.2 (Q8_0)
+✓ 提取权重: blk.2.attn_qkv.weight -> attn_qkv.2 (Q8_0)
+✓ 提取权重: blk.2.ffn_down.weight -> ffn_down.2 (Q8_0)
+✓ 提取权重: blk.2.ffn_gate_up.weight -> ffn_gate_up.2 (Q8_0)
+✓ 提取权重: blk.2.ffn_norm.weight -> ffn_norm.2 (F32)
+✓ 提取权重: blk.3.attn_norm.weight -> attn_norm.3 (F32)
+✓ 提取权重: blk.3.attn_output.weight -> attn_o.3 (Q8_0)
+✓ 提取权重: blk.3.attn_qkv.weight -> attn_qkv.3 (Q8_0)
+✓ 提取权重: blk.3.ffn_down.weight -> ffn_down.3 (Q8_0)
+✓ 提取权重: blk.3.ffn_gate_up.weight -> ffn_gate_up.3 (Q8_0)
+✓ 提取权重: blk.3.ffn_norm.weight -> ffn_norm.3 (F32)
+✓ 提取权重: blk.4.attn_norm.weight -> attn_norm.4 (F32)
+✓ 提取权重: blk.4.attn_output.weight -> attn_o.4 (Q8_0)
+✓ 提取权重: blk.4.attn_qkv.weight -> attn_qkv.4 (Q8_0)
+✓ 提取权重: blk.4.ffn_down.weight -> ffn_down.4 (Q8_0)
+✓ 提取权重: blk.4.ffn_gate_up.weight -> ffn_gate_up.4 (Q8_0)
+✓ 提取权重: blk.4.ffn_norm.weight -> ffn_norm.4 (F32)
+✓ 提取权重: blk.5.attn_norm.weight -> attn_norm.5 (F32)
+✓ 提取权重: blk.5.attn_output.weight -> attn_o.5 (Q8_0)
+✓ 提取权重: blk.5.attn_qkv.weight -> attn_qkv.5 (Q8_0)
+✓ 提取权重: blk.5.ffn_down.weight -> ffn_down.5 (Q8_0)
+✓ 提取权重: blk.5.ffn_gate_up.weight -> ffn_gate_up.5 (Q8_0)
+✓ 提取权重: blk.5.ffn_norm.weight -> ffn_norm.5 (F32)
+✓ 提取权重: blk.6.attn_norm.weight -> attn_norm.6 (F32)
+✓ 提取权重: blk.6.attn_output.weight -> attn_o.6 (Q8_0)
+✓ 提取权重: blk.6.attn_qkv.weight -> attn_qkv.6 (Q8_0)
+✓ 提取权重: blk.6.ffn_down.weight -> ffn_down.6 (Q8_0)
+✓ 提取权重: blk.6.ffn_gate_up.weight -> ffn_gate_up.6 (Q8_0)
+✓ 提取权重: blk.6.ffn_norm.weight -> ffn_norm.6 (F32)
+✓ 提取权重: blk.7.attn_norm.weight -> attn_norm.7 (F32)
+✓ 提取权重: blk.7.attn_output.weight -> attn_o.7 (Q8_0)
+✓ 提取权重: blk.7.attn_qkv.weight -> attn_qkv.7 (Q8_0)
+✓ 提取权重: blk.7.ffn_down.weight -> ffn_down.7 (Q8_0)
+✓ 提取权重: blk.7.ffn_gate_up.weight -> ffn_gate_up.7 (Q8_0)
+✓ 提取权重: blk.7.ffn_norm.weight -> ffn_norm.7 (F32)
+✓ 提取权重: blk.8.attn_norm.weight -> attn_norm.8 (F32)
+✓ 提取权重: blk.8.attn_output.weight -> attn_o.8 (Q8_0)
+✓ 提取权重: blk.8.attn_qkv.weight -> attn_qkv.8 (Q8_0)
+✓ 提取权重: blk.8.ffn_down.weight -> ffn_down.8 (Q8_0)
+✓ 提取权重: blk.8.ffn_gate_up.weight -> ffn_gate_up.8 (Q8_0)
+✓ 提取权重: blk.8.ffn_norm.weight -> ffn_norm.8 (F32)
+✓ 提取权重: blk.9.attn_norm.weight -> attn_norm.9 (F32)
+✓ 提取权重: blk.9.attn_output.weight -> attn_o.9 (Q8_0)
+✓ 提取权重: blk.9.attn_qkv.weight -> attn_qkv.9 (Q8_0)
+✓ 提取权重: blk.9.ffn_down.weight -> ffn_down.9 (Q8_0)
+✓ 提取权重: blk.9.ffn_gate_up.weight -> ffn_gate_up.9 (Q8_0)
+✓ 提取权重: blk.9.ffn_norm.weight -> ffn_norm.9 (F32)
+✓ 提取权重: blk.10.attn_norm.weight -> attn_norm.10 (F32)
+✓ 提取权重: blk.10.attn_output.weight -> attn_o.10 (Q8_0)
+✓ 提取权重: blk.10.attn_qkv.weight -> attn_qkv.10 (Q8_0)
+✓ 提取权重: blk.10.ffn_down.weight -> ffn_down.10 (Q8_0)
+✓ 提取权重: blk.10.ffn_gate_up.weight -> ffn_gate_up.10 (Q8_0)
+✓ 提取权重: blk.10.ffn_norm.weight -> ffn_norm.10 (F32)
+✓ 提取权重: blk.11.attn_norm.weight -> attn_norm.11 (F32)
+✓ 提取权重: blk.11.attn_output.weight -> attn_o.11 (Q8_0)
+✓ 提取权重: blk.11.attn_qkv.weight -> attn_qkv.11 (Q8_0)
+✓ 提取权重: blk.11.ffn_down.weight -> ffn_down.11 (Q8_0)
+✓ 提取权重: blk.11.ffn_gate_up.weight -> ffn_gate_up.11 (Q8_0)
+✓ 提取权重: blk.11.ffn_norm.weight -> ffn_norm.11 (F32)
+✓ 提取权重: blk.12.attn_norm.weight -> attn_norm.12 (F32)
+✓ 提取权重: blk.12.attn_output.weight -> attn_o.12 (Q8_0)
+✓ 提取权重: blk.12.attn_qkv.weight -> attn_qkv.12 (Q8_0)
+✓ 提取权重: blk.12.ffn_down.weight -> ffn_down.12 (Q8_0)
+✓ 提取权重: blk.12.ffn_gate_up.weight -> ffn_gate_up.12 (Q8_0)
+✓ 提取权重: blk.12.ffn_norm.weight -> ffn_norm.12 (F32)
+✓ 提取权重: blk.13.attn_norm.weight -> attn_norm.13 (F32)
+✓ 提取权重: blk.13.attn_output.weight -> attn_o.13 (Q8_0)
+✓ 提取权重: blk.13.attn_qkv.weight -> attn_qkv.13 (Q8_0)
+✓ 提取权重: blk.13.ffn_down.weight -> ffn_down.13 (Q8_0)
+✓ 提取权重: blk.13.ffn_gate_up.weight -> ffn_gate_up.13 (Q8_0)
+✓ 提取权重: blk.13.ffn_norm.weight -> ffn_norm.13 (F32)
+✓ 提取权重: blk.14.attn_norm.weight -> attn_norm.14 (F32)
+✓ 提取权重: blk.14.attn_output.weight -> attn_o.14 (Q8_0)
+✓ 提取权重: blk.14.attn_qkv.weight -> attn_qkv.14 (Q8_0)
+✓ 提取权重: blk.14.ffn_down.weight -> ffn_down.14 (Q8_0)
+✓ 提取权重: blk.14.ffn_gate_up.weight -> ffn_gate_up.14 (Q8_0)
+✓ 提取权重: blk.14.ffn_norm.weight -> ffn_norm.14 (F32)
+✓ 提取权重: blk.15.attn_norm.weight -> attn_norm.15 (F32)
+✓ 提取权重: blk.15.attn_output.weight -> attn_o.15 (Q8_0)
+✓ 提取权重: blk.15.attn_qkv.weight -> attn_qkv.15 (Q8_0)
+✓ 提取权重: blk.15.ffn_down.weight -> ffn_down.15 (Q8_0)
+✓ 提取权重: blk.15.ffn_gate_up.weight -> ffn_gate_up.15 (Q8_0)
+✓ 提取权重: blk.15.ffn_norm.weight -> ffn_norm.15 (F32)
+✓ 提取权重: blk.16.attn_norm.weight -> attn_norm.16 (F32)
+✓ 提取权重: blk.16.attn_output.weight -> attn_o.16 (Q8_0)
+✓ 提取权重: blk.16.attn_qkv.weight -> attn_qkv.16 (Q8_0)
+✓ 提取权重: blk.16.ffn_down.weight -> ffn_down.16 (Q8_0)
+✓ 提取权重: blk.16.ffn_gate_up.weight -> ffn_gate_up.16 (Q8_0)
+✓ 提取权重: blk.16.ffn_norm.weight -> ffn_norm.16 (F32)
+✓ 提取权重: blk.17.attn_norm.weight -> attn_norm.17 (F32)
+✓ 提取权重: blk.17.attn_output.weight -> attn_o.17 (Q8_0)
+✓ 提取权重: blk.17.attn_qkv.weight -> attn_qkv.17 (Q8_0)
+✓ 提取权重: blk.17.ffn_down.weight -> ffn_down.17 (Q8_0)
+✓ 提取权重: blk.17.ffn_gate_up.weight -> ffn_gate_up.17 (Q8_0)
+✓ 提取权重: blk.17.ffn_norm.weight -> ffn_norm.17 (F32)
+✓ 提取权重: blk.18.attn_norm.weight -> attn_norm.18 (F32)
+✓ 提取权重: blk.18.attn_output.weight -> attn_o.18 (Q8_0)
+✓ 提取权重: blk.18.attn_qkv.weight -> attn_qkv.18 (Q8_0)
+✓ 提取权重: blk.18.ffn_down.weight -> ffn_down.18 (Q8_0)
+✓ 提取权重: blk.18.ffn_gate_up.weight -> ffn_gate_up.18 (Q8_0)
+✓ 提取权重: blk.18.ffn_norm.weight -> ffn_norm.18 (F32)
+✓ 提取权重: blk.19.attn_norm.weight -> attn_norm.19 (F32)
+✓ 提取权重: blk.19.attn_output.weight -> attn_o.19 (Q8_0)
+✓ 提取权重: blk.19.attn_qkv.weight -> attn_qkv.19 (Q8_0)
+✓ 提取权重: blk.19.ffn_down.weight -> ffn_down.19 (Q8_0)
+✓ 提取权重: blk.19.ffn_gate_up.weight -> ffn_gate_up.19 (Q8_0)
+✓ 提取权重: blk.19.ffn_norm.weight -> ffn_norm.19 (F32)
+✓ 提取权重: blk.20.attn_norm.weight -> attn_norm.20 (F32)
+✓ 提取权重: blk.20.attn_output.weight -> attn_o.20 (Q8_0)
+✓ 提取权重: blk.20.attn_qkv.weight -> attn_qkv.20 (Q8_0)
+✓ 提取权重: blk.20.ffn_down.weight -> ffn_down.20 (Q8_0)
+✓ 提取权重: blk.20.ffn_gate_up.weight -> ffn_gate_up.20 (Q8_0)
+✓ 提取权重: blk.20.ffn_norm.weight -> ffn_norm.20 (F32)
+✓ 提取权重: blk.21.attn_norm.weight -> attn_norm.21 (F32)
+✓ 提取权重: blk.21.attn_output.weight -> attn_o.21 (Q8_0)
+✓ 提取权重: blk.21.attn_qkv.weight -> attn_qkv.21 (Q8_0)
+✓ 提取权重: blk.21.ffn_down.weight -> ffn_down.21 (Q8_0)
+✓ 提取权重: blk.21.ffn_gate_up.weight -> ffn_gate_up.21 (Q8_0)
+✓ 提取权重: blk.21.ffn_norm.weight -> ffn_norm.21 (F32)
+✓ 提取权重: blk.22.attn_norm.weight -> attn_norm.22 (F32)
+✓ 提取权重: blk.22.attn_output.weight -> attn_o.22 (Q8_0)
+✓ 提取权重: blk.22.attn_qkv.weight -> attn_qkv.22 (Q8_0)
+✓ 提取权重: blk.22.ffn_down.weight -> ffn_down.22 (Q8_0)
+✓ 提取权重: blk.22.ffn_gate_up.weight -> ffn_gate_up.22 (Q8_0)
+✓ 提取权重: blk.22.ffn_norm.weight -> ffn_norm.22 (F32)
+✓ 提取权重: blk.23.attn_norm.weight -> attn_norm.23 (F32)
+✓ 提取权重: blk.23.attn_output.weight -> attn_o.23 (Q8_0)
+✓ 提取权重: blk.23.attn_qkv.weight -> attn_qkv.23 (Q8_0)
+✓ 提取权重: blk.23.ffn_down.weight -> ffn_down.23 (Q8_0)
+✓ 提取权重: blk.23.ffn_gate_up.weight -> ffn_gate_up.23 (Q8_0)
+✓ 提取权重: blk.23.ffn_norm.weight -> ffn_norm.23 (F32)
+✓ 提取权重: blk.24.attn_norm.weight -> attn_norm.24 (F32)
+✓ 提取权重: blk.24.attn_output.weight -> attn_o.24 (Q8_0)
+✓ 提取权重: blk.24.attn_qkv.weight -> attn_qkv.24 (Q8_0)
+✓ 提取权重: blk.24.ffn_down.weight -> ffn_down.24 (Q8_0)
+✓ 提取权重: blk.24.ffn_gate_up.weight -> ffn_gate_up.24 (Q8_0)
+✓ 提取权重: blk.24.ffn_norm.weight -> ffn_norm.24 (F32)
+✓ 提取权重: blk.25.attn_norm.weight -> attn_norm.25 (F32)
+✓ 提取权重: blk.25.attn_output.weight -> attn_o.25 (Q8_0)
+✓ 提取权重: blk.25.attn_qkv.weight -> attn_qkv.25 (Q8_0)
+✓ 提取权重: blk.25.ffn_down.weight -> ffn_down.25 (Q8_0)
+✓ 提取权重: blk.25.ffn_gate_up.weight -> ffn_gate_up.25 (Q8_0)
+✓ 提取权重: blk.25.ffn_norm.weight -> ffn_norm.25 (F32)
+✓ 提取权重: blk.26.attn_norm.weight -> attn_norm.26 (F32)
+✓ 提取权重: blk.26.attn_output.weight -> attn_o.26 (Q8_0)
+✓ 提取权重: blk.26.attn_qkv.weight -> attn_qkv.26 (Q8_0)
+✓ 提取权重: blk.26.ffn_down.weight -> ffn_down.26 (Q8_0)
+✓ 提取权重: blk.26.ffn_gate_up.weight -> ffn_gate_up.26 (Q8_0)
+✓ 提取权重: blk.26.ffn_norm.weight -> ffn_norm.26 (F32)
+✓ 提取权重: blk.27.attn_norm.weight -> attn_norm.27 (F32)
+✓ 提取权重: blk.27.attn_output.weight -> attn_o.27 (Q8_0)
+✓ 提取权重: blk.27.attn_qkv.weight -> attn_qkv.27 (Q8_0)
+✓ 提取权重: blk.27.ffn_down.weight -> ffn_down.27 (Q8_0)
+✓ 提取权重: blk.27.ffn_gate_up.weight -> ffn_gate_up.27 (Q8_0)
+✓ 提取权重: blk.27.ffn_norm.weight -> ffn_norm.27 (F32)
+✓ 提取权重: blk.28.attn_norm.weight -> attn_norm.28 (F32)
+✓ 提取权重: blk.28.attn_output.weight -> attn_o.28 (Q8_0)
+✓ 提取权重: blk.28.attn_qkv.weight -> attn_qkv.28 (Q8_0)
+✓ 提取权重: blk.28.ffn_down.weight -> ffn_down.28 (Q8_0)
+✓ 提取权重: blk.28.ffn_gate_up.weight -> ffn_gate_up.28 (Q8_0)
+✓ 提取权重: blk.28.ffn_norm.weight -> ffn_norm.28 (F32)
+✓ 提取权重: blk.29.attn_norm.weight -> attn_norm.29 (F32)
+✓ 提取权重: blk.29.attn_output.weight -> attn_o.29 (Q8_0)
+✓ 提取权重: blk.29.attn_qkv.weight -> attn_qkv.29 (Q8_0)
+✓ 提取权重: blk.29.ffn_down.weight -> ffn_down.29 (Q8_0)
+✓ 提取权重: blk.29.ffn_gate_up.weight -> ffn_gate_up.29 (Q8_0)
+✓ 提取权重: blk.29.ffn_norm.weight -> ffn_norm.29 (F32)
+✓ 提取权重: blk.30.attn_norm.weight -> attn_norm.30 (F32)
+✓ 提取权重: blk.30.attn_output.weight -> attn_o.30 (Q8_0)
+✓ 提取权重: blk.30.attn_qkv.weight -> attn_qkv.30 (Q8_0)
+✓ 提取权重: blk.30.ffn_down.weight -> ffn_down.30 (Q8_0)
+✓ 提取权重: blk.30.ffn_gate_up.weight -> ffn_gate_up.30 (Q8_0)
+✓ 提取权重: blk.30.ffn_norm.weight -> ffn_norm.30 (F32)
+✓ 提取权重: blk.31.attn_norm.weight -> attn_norm.31 (F32)
+✓ 提取权重: blk.31.attn_output.weight -> attn_o.31 (Q8_0)
+✓ 提取权重: blk.31.attn_qkv.weight -> attn_qkv.31 (Q8_0)
+✓ 提取权重: blk.31.ffn_down.weight -> ffn_down.31 (Q8_0)
+✓ 提取权重: blk.31.ffn_gate_up.weight -> ffn_gate_up.31 (Q8_0)
+✓ 提取权重: blk.31.ffn_norm.weight -> ffn_norm.31 (F32)
+✓ 提取权重: blk.32.attn_norm.weight -> attn_norm.32 (F32)
+✓ 提取权重: blk.32.attn_output.weight -> attn_o.32 (Q8_0)
+✓ 提取权重: blk.32.attn_qkv.weight -> attn_qkv.32 (Q8_0)
+✓ 提取权重: blk.32.ffn_down.weight -> ffn_down.32 (Q8_0)
+✓ 提取权重: blk.32.ffn_gate_up.weight -> ffn_gate_up.32 (Q8_0)
+✓ 提取权重: blk.32.ffn_norm.weight -> ffn_norm.32 (F32)
+✓ 提取权重: blk.33.attn_norm.weight -> attn_norm.33 (F32)
+✓ 提取权重: blk.33.attn_output.weight -> attn_o.33 (Q8_0)
+✓ 提取权重: blk.33.attn_qkv.weight -> attn_qkv.33 (Q8_0)
+✓ 提取权重: blk.33.ffn_down.weight -> ffn_down.33 (Q8_0)
+✓ 提取权重: blk.33.ffn_gate_up.weight -> ffn_gate_up.33 (Q8_0)
+✓ 提取权重: blk.33.ffn_norm.weight -> ffn_norm.33 (F32)
+✓ 提取权重: blk.34.attn_norm.weight -> attn_norm.34 (F32)
+✓ 提取权重: blk.34.attn_output.weight -> attn_o.34 (Q8_0)
+✓ 提取权重: blk.34.attn_qkv.weight -> attn_qkv.34 (Q8_0)
+✓ 提取权重: blk.34.ffn_down.weight -> ffn_down.34 (Q8_0)
+✓ 提取权重: blk.34.ffn_gate_up.weight -> ffn_gate_up.34 (Q8_0)
+✓ 提取权重: blk.34.ffn_norm.weight -> ffn_norm.34 (F32)
+✓ 提取权重: blk.35.attn_norm.weight -> attn_norm.35 (F32)
+✓ 提取权重: blk.35.attn_output.weight -> attn_o.35 (Q8_0)
+✓ 提取权重: blk.35.attn_qkv.weight -> attn_qkv.35 (Q8_0)
+✓ 提取权重: blk.35.ffn_down.weight -> ffn_down.35 (Q8_0)
+✓ 提取权重: blk.35.ffn_gate_up.weight -> ffn_gate_up.35 (Q8_0)
+✓ 提取权重: blk.35.ffn_norm.weight -> ffn_norm.35 (F32)
+✓ 提取权重: blk.36.attn_norm.weight -> attn_norm.36 (F32)
+✓ 提取权重: blk.36.attn_output.weight -> attn_o.36 (Q8_0)
+✓ 提取权重: blk.36.attn_qkv.weight -> attn_qkv.36 (Q8_0)
+✓ 提取权重: blk.36.ffn_down.weight -> ffn_down.36 (Q8_0)
+✓ 提取权重: blk.36.ffn_gate_up.weight -> ffn_gate_up.36 (Q8_0)
+✓ 提取权重: blk.36.ffn_norm.weight -> ffn_norm.36 (F32)
+✓ 提取权重: blk.37.attn_norm.weight -> attn_norm.37 (F32)
+✓ 提取权重: blk.37.attn_output.weight -> attn_o.37 (Q8_0)
+✓ 提取权重: blk.37.attn_qkv.weight -> attn_qkv.37 (Q8_0)
+✓ 提取权重: blk.37.ffn_down.weight -> ffn_down.37 (Q8_0)
+✓ 提取权重: blk.37.ffn_gate_up.weight -> ffn_gate_up.37 (Q8_0)
+✓ 提取权重: blk.37.ffn_norm.weight -> ffn_norm.37 (F32)
+✓ 提取权重: blk.38.attn_norm.weight -> attn_norm.38 (F32)
+✓ 提取权重: blk.38.attn_output.weight -> attn_o.38 (Q8_0)
+✓ 提取权重: blk.38.attn_qkv.weight -> attn_qkv.38 (Q8_0)
+✓ 提取权重: blk.38.ffn_down.weight -> ffn_down.38 (Q8_0)
+✓ 提取权重: blk.38.ffn_gate_up.weight -> ffn_gate_up.38 (Q8_0)
+✓ 提取权重: blk.38.ffn_norm.weight -> ffn_norm.38 (F32)
+✓ 提取权重: blk.39.attn_norm.weight -> attn_norm.39 (F32)
+✓ 提取权重: blk.39.attn_output.weight -> attn_o.39 (Q8_0)
+✓ 提取权重: blk.39.attn_qkv.weight -> attn_qkv.39 (Q8_0)
+✓ 提取权重: blk.39.ffn_down.weight -> ffn_down.39 (Q8_0)
+✓ 提取权重: blk.39.ffn_gate_up.weight -> ffn_gate_up.39 (Q8_0)
+✓ 提取权重: blk.39.ffn_norm.weight -> ffn_norm.39 (F32)
+✓ 提取权重: blk.40.attn_norm.weight -> attn_norm.40 (F32)
+✓ 提取权重: blk.40.attn_output.weight -> attn_o.40 (Q8_0)
+✓ 提取权重: blk.40.attn_qkv.weight -> attn_qkv.40 (Q8_0)
+✓ 提取权重: blk.40.ffn_down.weight -> ffn_down.40 (Q8_0)
+✓ 提取权重: blk.40.ffn_gate_up.weight -> ffn_gate_up.40 (Q8_0)
+✓ 提取权重: blk.40.ffn_norm.weight -> ffn_norm.40 (F32)
+✓ 提取权重: blk.41.attn_norm.weight -> attn_norm.41 (F32)
+✓ 提取权重: blk.41.attn_output.weight -> attn_o.41 (Q8_0)
+✓ 提取权重: blk.41.attn_qkv.weight -> attn_qkv.41 (Q8_0)
+✓ 提取权重: blk.41.ffn_down.weight -> ffn_down.41 (Q8_0)
+✓ 提取权重: blk.41.ffn_gate_up.weight -> ffn_gate_up.41 (Q8_0)
+✓ 提取权重: blk.41.ffn_norm.weight -> ffn_norm.41 (F32)
+✓ 提取权重: blk.42.attn_norm.weight -> attn_norm.42 (F32)
+✓ 提取权重: blk.42.attn_output.weight -> attn_o.42 (Q8_0)
+✓ 提取权重: blk.42.attn_qkv.weight -> attn_qkv.42 (Q8_0)
+✓ 提取权重: blk.42.ffn_down.weight -> ffn_down.42 (Q8_0)
+✓ 提取权重: blk.42.ffn_gate_up.weight -> ffn_gate_up.42 (Q8_0)
+✓ 提取权重: blk.42.ffn_norm.weight -> ffn_norm.42 (F32)
+✓ 提取权重: blk.43.attn_norm.weight -> attn_norm.43 (F32)
+✓ 提取权重: blk.43.attn_output.weight -> attn_o.43 (Q8_0)
+✓ 提取权重: blk.43.attn_qkv.weight -> attn_qkv.43 (Q8_0)
+✓ 提取权重: blk.43.ffn_down.weight -> ffn_down.43 (Q8_0)
+✓ 提取权重: blk.43.ffn_gate_up.weight -> ffn_gate_up.43 (Q8_0)
+✓ 提取权重: blk.43.ffn_norm.weight -> ffn_norm.43 (F32)
+✓ 提取权重: blk.44.attn_norm.weight -> attn_norm.44 (F32)
+✓ 提取权重: blk.44.attn_output.weight -> attn_o.44 (Q8_0)
+✓ 提取权重: blk.44.attn_qkv.weight -> attn_qkv.44 (Q8_0)
+✓ 提取权重: blk.44.ffn_down.weight -> ffn_down.44 (Q8_0)
+✓ 提取权重: blk.44.ffn_gate_up.weight -> ffn_gate_up.44 (Q8_0)
+✓ 提取权重: blk.44.ffn_norm.weight -> ffn_norm.44 (F32)
+✓ 提取权重: blk.45.attn_norm.weight -> attn_norm.45 (F32)
+✓ 提取权重: blk.45.attn_output.weight -> attn_o.45 (Q8_0)
+✓ 提取权重: blk.45.attn_qkv.weight -> attn_qkv.45 (Q8_0)
+✓ 提取权重: blk.45.ffn_down.weight -> ffn_down.45 (Q8_0)
+✓ 提取权重: blk.45.ffn_gate_up.weight -> ffn_gate_up.45 (Q8_0)
+✓ 提取权重: blk.45.ffn_norm.weight -> ffn_norm.45 (F32)
+✓ 提取权重: blk.46.attn_norm.weight -> attn_norm.46 (F32)
+✓ 提取权重: blk.46.attn_output.weight -> attn_o.46 (Q8_0)
+✓ 提取权重: blk.46.attn_qkv.weight -> attn_qkv.46 (Q8_0)
+✓ 提取权重: blk.46.ffn_down.weight -> ffn_down.46 (Q8_0)
+✓ 提取权重: blk.46.ffn_gate_up.weight -> ffn_gate_up.46 (Q8_0)
+✓ 提取权重: blk.46.ffn_norm.weight -> ffn_norm.46 (F32)
+✓ 提取权重: blk.47.attn_norm.weight -> attn_norm.47 (F32)
+✓ 提取权重: blk.47.attn_output.weight -> attn_o.47 (Q8_0)
+✓ 提取权重: blk.47.attn_qkv.weight -> attn_qkv.47 (Q8_0)
+✓ 提取权重: blk.47.ffn_down.weight -> ffn_down.47 (Q8_0)
+✓ 提取权重: blk.47.ffn_gate_up.weight -> ffn_gate_up.47 (Q8_0)
+✓ 提取权重: blk.47.ffn_norm.weight -> ffn_norm.47 (F32)
+✓ 提取权重: blk.48.attn_norm.weight -> attn_norm.48 (F32)
+✓ 提取权重: blk.48.attn_output.weight -> attn_o.48 (Q8_0)
+✓ 提取权重: blk.48.attn_qkv.weight -> attn_qkv.48 (Q8_0)
+✓ 提取权重: blk.48.ffn_down.weight -> ffn_down.48 (Q8_0)
+✓ 提取权重: blk.48.ffn_gate_up.weight -> ffn_gate_up.48 (Q8_0)
+✓ 提取权重: blk.48.ffn_norm.weight -> ffn_norm.48 (F32)
+✓ 提取权重: blk.49.attn_norm.weight -> attn_norm.49 (F32)
+✓ 提取权重: blk.49.attn_output.weight -> attn_o.49 (Q8_0)
+✓ 提取权重: blk.49.attn_qkv.weight -> attn_qkv.49 (Q8_0)
+✓ 提取权重: blk.49.ffn_down.weight -> ffn_down.49 (Q8_0)
+✓ 提取权重: blk.49.ffn_gate_up.weight -> ffn_gate_up.49 (Q8_0)
+✓ 提取权重: blk.49.ffn_norm.weight -> ffn_norm.49 (F32)
+✓ 提取权重: blk.50.attn_norm.weight -> attn_norm.50 (F32)
+✓ 提取权重: blk.50.attn_output.weight -> attn_o.50 (Q8_0)
+✓ 提取权重: blk.50.attn_qkv.weight -> attn_qkv.50 (Q8_0)
+✓ 提取权重: blk.50.ffn_down.weight -> ffn_down.50 (Q8_0)
+✓ 提取权重: blk.50.ffn_gate_up.weight -> ffn_gate_up.50 (Q8_0)
+✓ 提取权重: blk.50.ffn_norm.weight -> ffn_norm.50 (F32)
+✓ 提取权重: blk.51.attn_norm.weight -> attn_norm.51 (F32)
+✓ 提取权重: blk.51.attn_output.weight -> attn_o.51 (Q8_0)
+✓ 提取权重: blk.51.attn_qkv.weight -> attn_qkv.51 (Q8_0)
+✓ 提取权重: blk.51.ffn_down.weight -> ffn_down.51 (Q8_0)
+✓ 提取权重: blk.51.ffn_gate_up.weight -> ffn_gate_up.51 (Q8_0)
+✓ 提取权重: blk.51.ffn_norm.weight -> ffn_norm.51 (F32)
+✓ 提取权重: blk.52.attn_norm.weight -> attn_norm.52 (F32)
+✓ 提取权重: blk.52.attn_output.weight -> attn_o.52 (Q8_0)
+✓ 提取权重: blk.52.attn_qkv.weight -> attn_qkv.52 (Q8_0)
+✓ 提取权重: blk.52.ffn_down.weight -> ffn_down.52 (Q8_0)
+✓ 提取权重: blk.52.ffn_gate_up.weight -> ffn_gate_up.52 (Q8_0)
+✓ 提取权重: blk.52.ffn_norm.weight -> ffn_norm.52 (F32)
+✓ 提取权重: blk.53.attn_norm.weight -> attn_norm.53 (F32)
+✓ 提取权重: blk.53.attn_output.weight -> attn_o.53 (Q8_0)
+✓ 提取权重: blk.53.attn_qkv.weight -> attn_qkv.53 (Q8_0)
+✓ 提取权重: blk.53.ffn_down.weight -> ffn_down.53 (Q8_0)
+✓ 提取权重: blk.53.ffn_gate_up.weight -> ffn_gate_up.53 (Q8_0)
+✓ 提取权重: blk.53.ffn_norm.weight -> ffn_norm.53 (F32)
+✓ 提取权重: blk.54.attn_norm.weight -> attn_norm.54 (F32)
+✓ 提取权重: blk.54.attn_output.weight -> attn_o.54 (Q8_0)
+✓ 提取权重: blk.54.attn_qkv.weight -> attn_qkv.54 (Q8_0)
+✓ 提取权重: blk.54.ffn_down.weight -> ffn_down.54 (Q8_0)
+✓ 提取权重: blk.54.ffn_gate_up.weight -> ffn_gate_up.54 (Q8_0)
+✓ 提取权重: blk.54.ffn_norm.weight -> ffn_norm.54 (F32)
+✓ 提取权重: blk.55.attn_norm.weight -> attn_norm.55 (F32)
+✓ 提取权重: blk.55.attn_output.weight -> attn_o.55 (Q8_0)
+✓ 提取权重: blk.55.attn_qkv.weight -> attn_qkv.55 (Q8_0)
+✓ 提取权重: blk.55.ffn_down.weight -> ffn_down.55 (Q8_0)
+✓ 提取权重: blk.55.ffn_gate_up.weight -> ffn_gate_up.55 (Q8_0)
+✓ 提取权重: blk.55.ffn_norm.weight -> ffn_norm.55 (F32)
+✓ 提取权重: blk.56.attn_norm.weight -> attn_norm.56 (F32)
+✓ 提取权重: blk.56.attn_output.weight -> attn_o.56 (Q8_0)
+✓ 提取权重: blk.56.attn_qkv.weight -> attn_qkv.56 (Q8_0)
+✓ 提取权重: blk.56.ffn_down.weight -> ffn_down.56 (Q8_0)
+✓ 提取权重: blk.56.ffn_gate_up.weight -> ffn_gate_up.56 (Q8_0)
+✓ 提取权重: blk.56.ffn_norm.weight -> ffn_norm.56 (F32)
+✓ 提取权重: blk.57.attn_norm.weight -> attn_norm.57 (F32)
+✓ 提取权重: blk.57.attn_output.weight -> attn_o.57 (Q8_0)
+✓ 提取权重: blk.57.attn_qkv.weight -> attn_qkv.57 (Q8_0)
+✓ 提取权重: blk.57.ffn_down.weight -> ffn_down.57 (Q8_0)
+✓ 提取权重: blk.57.ffn_gate_up.weight -> ffn_gate_up.57 (Q8_0)
+✓ 提取权重: blk.57.ffn_norm.weight -> ffn_norm.57 (F32)
+✓ 提取权重: blk.58.attn_norm.weight -> attn_norm.58 (F32)
+✓ 提取权重: blk.58.attn_output.weight -> attn_o.58 (Q8_0)
+✓ 提取权重: blk.58.attn_qkv.weight -> attn_qkv.58 (Q8_0)
+✓ 提取权重: blk.58.ffn_down.weight -> ffn_down.58 (Q8_0)
+✓ 提取权重: blk.58.ffn_gate_up.weight -> ffn_gate_up.58 (Q8_0)
+✓ 提取权重: blk.58.ffn_norm.weight -> ffn_norm.58 (F32)
+✓ 提取权重: blk.59.attn_norm.weight -> attn_norm.59 (F32)
+✓ 提取权重: blk.59.attn_output.weight -> attn_o.59 (Q8_0)
+✓ 提取权重: blk.59.attn_qkv.weight -> attn_qkv.59 (Q8_0)
+✓ 提取权重: blk.59.ffn_down.weight -> ffn_down.59 (Q8_0)
+✓ 提取权重: blk.59.ffn_gate_up.weight -> ffn_gate_up.59 (Q8_0)
+✓ 提取权重: blk.59.ffn_norm.weight -> ffn_norm.59 (F32)
+✓ 提取权重: blk.60.attn_norm.weight -> attn_norm.60 (F32)
+✓ 提取权重: blk.60.attn_output.weight -> attn_o.60 (Q8_0)
+✓ 提取权重: blk.60.attn_qkv.weight -> attn_qkv.60 (Q8_0)
+✓ 提取权重: blk.60.ffn_down.weight -> ffn_down.60 (Q8_0)
+
+================================================================================
+详细数据输出 - blk.60.ffn_gate_up.weight
+================================================================================
+张量信息:
+  原始名称: blk.60.ffn_gate_up.weight
+  InfiniCore名称: ffn_gate_up.60
+  数据类型: Q8_0
+  维度: [2560, 12800]
+  形状: [2560, 12800]
+  元素总数: 32,768,000
+  数据大小: 34,816,000 字节
+  数据偏移: 4,286,337,280
+
+Q8_0量化数据详情:
+  量化块数量: 1024000
+  每块元素数: 32
+
+前5个量化块的详细数据:
+
+  块 0:
+    缩放因子 (scale): 0.0005998611450195312
+    权重数据 (32个int8值): [-14, -32, 9, 53, -64, -14, 69, 92, -78, -41, 27, 73, 75, 121, 84, -74, -21, -66, -55, 44, -65, -22, 50, -7, -112, -50, -60, 112, -14, -19, 6, -127]
+    权重范围: [-127, 121]
+    权重均值: -3.750000
+    权重标准差: 64.402057
+
+  块 1:
+    缩放因子 (scale): 0.0005650520324707031
+    权重数据 (32个int8值): [-36, -15, 45, -90, -23, 127, -3, 5, 17, 117, 62, 18, 21, 35, 38, -72, -36, -111, 37, 30, 29, -34, -5, 27, 14, -25, 17, -64, -14, -15, -5, 70]
+    权重范围: [-111, 127]
+    权重均值: 5.031250
+    权重标准差: 50.977007
+
+  块 2:
+    缩放因子 (scale): 0.0006422996520996094
+    权重数据 (32个int8值): [28, -51, 24, -40, 16, 44, 30, -65, 18, 90, -127, -3, 18, 52, -70, 78, -27, -50, 18, 13, -13, -11, 85, -15, 15, 62, 5, 35, 83, -23, 70, -10]
+    权重范围: [-127, 90]
+    权重均值: 8.718750
+    权重标准差: 49.440137
+
+  块 3:
+    缩放因子 (scale): 0.0006189346313476562
+    权重数据 (32个int8值): [121, -26, 20, 6, -13, 17, -24, -1, 107, -61, 6, 127, 8, 47, -11, 73, -85, 51, -28, -61, 40, 1, 52, 24, -40, 44, -84, -7, 12, -67, -50, -21]
+    权重范围: [-85, 127]
+    权重均值: 5.531250
+    权重标准差: 53.704623
+
+  块 4:
+    缩放因子 (scale): 0.0006499290466308594
+    权重数据 (32个int8值): [-46, -13, -49, -55, -113, -76, -2, -58, 76, 14, -55, -10, -61, 94, -17, -11, -24, -13, 4, 1, -127, -13, 14, 113, 11, 12, -62, 78, -58, 108, 34, 13]
+    权重范围: [-127, 113]
+    权重均值: -9.093750
+    权重标准差: 57.449086
+
+  ... 还有 1023995 个块未显示
+
+所有块的缩放因子统计:
+  最小值: 0.00019025802612304688
+  最大值: 0.0095367431640625
+  均值: 0.000822
+  标准差: 0.000186
+  中位数: 0.000800
+
+所有量化权重值统计:
+  最小值: -127
+  最大值: 127
+  均值: -0.025661
+  标准差: 55.052961
+  中位数: 0.000000
+================================================================================
+✓ 提取权重: blk.60.ffn_gate_up.weight -> ffn_gate_up.60 (Q8_0)
+✓ 提取权重: blk.60.ffn_norm.weight -> ffn_norm.60 (F32)
+✓ 提取权重: blk.61.attn_norm.weight -> attn_norm.61 (F32)
+✓ 提取权重: blk.61.attn_output.weight -> attn_o.61 (Q8_0)
+✓ 提取权重: blk.61.attn_qkv.weight -> attn_qkv.61 (Q8_0)
+✓ 提取权重: blk.61.ffn_down.weight -> ffn_down.61 (Q8_0)
+
+================================================================================
+详细数据输出 - blk.61.ffn_gate_up.weight
+================================================================================
+张量信息:
+  原始名称: blk.61.ffn_gate_up.weight
+  InfiniCore名称: ffn_gate_up.61
+  数据类型: Q8_0
+  维度: [2560, 12800]
+  形状: [2560, 12800]
+  元素总数: 32,768,000
+  数据大小: 34,816,000 字节
+  数据偏移: 4,353,900,800
+
+Q8_0量化数据详情:
+  量化块数量: 1024000
+  每块元素数: 32
+
+前5个量化块的详细数据:
+
+  块 0:
+    缩放因子 (scale): 0.0007882118225097656
+    权重数据 (32个int8值): [62, -39, 10, -33, 14, -67, -21, 38, -116, -48, 124, -12, -15, 10, -75, -105, -59, 38, 24, 62, -99, -50, 13, 105, -16, 127, -48, 19, 29, -76, -75, 11]
+    权重范围: [-116, 127]
+    权重均值: -8.375000
+    权重标准差: 62.095566
+
+  块 1:
+    缩放因子 (scale): 0.0007190704345703125
+    权重数据 (32个int8值): [99, 56, 127, -83, 46, 7, 25, 104, 47, -84, -25, 22, -25, -92, 44, 20, 62, 81, 22, -25, -106, -40, -39, -77, 6, -102, 15, -7, 3, 53, -22, -32]
+    权重范围: [-106, 127]
+    权重均值: 2.500000
+    权重标准差: 60.724789
+
+  块 2:
+    缩放因子 (scale): 0.0011529922485351562
+    权重数据 (32个int8值): [14, 19, 52, -34, -20, 34, 7, -23, 42, -2, 18, 103, 4, -9, 41, 15, -38, 66, -46, 30, 91, -22, -33, -11, -65, -127, 9, -32, -17, 57, 73, 26]
+    权重范围: [-127, 103]
+    权重均值: 6.937500
+    权重标准差: 46.606020
+
+  块 3:
+    缩放因子 (scale): 0.0010461807250976562
+    权重数据 (32个int8值): [-42, 115, 50, 9, -36, -42, 28, 64, -76, 50, -21, 14, 4, 9, -86, 3, -12, -9, 57, -49, 9, 27, -9, 19, 11, 63, -56, 30, 14, -20, -127, 42]
+    权重范围: [-127, 115]
+    权重均值: 1.031250
+    权重标准差: 48.616152
+
+  块 4:
+    缩放因子 (scale): 0.0007381439208984375
+    权重数据 (32个int8值): [7, 14, 20, -29, -25, 90, 114, 11, 13, -101, -127, 41, 94, 118, 28, 44, 49, 2, 21, 77, -47, -42, 42, -62, -107, 38, 87, -100, 4, -77, 32, -1]
+    权重范围: [-127, 118]
+    权重均值: 7.125000
+    权重标准差: 64.019406
+
+  ... 还有 1023995 个块未显示
+
+所有块的缩放因子统计:
+  最小值: 0.0001672506332397461
+  最大值: 0.00836944580078125
+  均值: 0.000812
+  标准差: 0.000196
+  中位数: 0.000788
+
+所有量化权重值统计:
+  最小值: -127
+  最大值: 127
+  均值: -0.009676
+  标准差: 55.024867
+  中位数: 0.000000
+================================================================================
+✓ 提取权重: blk.61.ffn_gate_up.weight -> ffn_gate_up.61 (Q8_0)
+✓ 提取权重: blk.61.ffn_norm.weight -> ffn_norm.61 (F32)
+
+================================================================================
+权重数据提取报告
+================================================================================
+
+提取统计:
+  总提取权重数: 374
+  F32: 125 个权重, 320,000 参数
+  Q8_0: 249 个权重, 4,129,361,920 参数
+
+全局权重:
+  output_norm: [2560] (F32)
+  input_embd: [2560×73448] (Q8_0)
+
+层级权重 (共62层):
+  第0层:
+    attn_norm.0: [2560] (F32)
+    attn_o.0: [2560×2560] (Q8_0)
+    attn_qkv.0: [2560×3072] (Q8_0)
+    ffn_down.0: [6400×2560] (Q8_0)
+    ffn_gate_up.0: [2560×12800] (Q8_0)
+    ffn_norm.0: [2560] (F32)
+  第1层:
+    attn_norm.1: [2560] (F32)
+    attn_o.1: [2560×2560] (Q8_0)
+    attn_qkv.1: [2560×3072] (Q8_0)
+    ffn_down.1: [6400×2560] (Q8_0)
+    ffn_gate_up.1: [2560×12800] (Q8_0)
+    ffn_norm.1: [2560] (F32)
+  第2层:
+    attn_norm.2: [2560] (F32)
+    attn_o.2: [2560×2560] (Q8_0)
+    attn_qkv.2: [2560×3072] (Q8_0)
+    ffn_down.2: [6400×2560] (Q8_0)
+    ffn_gate_up.2: [2560×12800] (Q8_0)
+    ffn_norm.2: [2560] (F32)
+  ... 还有 59 层权重
+
+Q8_0权重详细分析:
+  Q8_0权重数量: 249
+  缩放因子统计 (前5个权重):
+    范围: [0.000043, 0.017227]
+    均值: 0.001189
+    标准差: 0.000506
+✓ 保存权重: ./my_weights/output_norm.npz
+✓ 保存权重: ./my_weights/input_embd.npz
+✓ 保存权重: ./my_weights/attn_norm_0.npz
+✓ 保存权重: ./my_weights/attn_o_0.npz
+✓ 保存权重: ./my_weights/attn_qkv_0.npz
+✓ 保存权重: ./my_weights/ffn_down_0.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_0.npz
+✓ 保存权重: ./my_weights/ffn_norm_0.npz
+✓ 保存权重: ./my_weights/attn_norm_1.npz
+✓ 保存权重: ./my_weights/attn_o_1.npz
+✓ 保存权重: ./my_weights/attn_qkv_1.npz
+✓ 保存权重: ./my_weights/ffn_down_1.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_1.npz
+✓ 保存权重: ./my_weights/ffn_norm_1.npz
+✓ 保存权重: ./my_weights/attn_norm_2.npz
+✓ 保存权重: ./my_weights/attn_o_2.npz
+✓ 保存权重: ./my_weights/attn_qkv_2.npz
+✓ 保存权重: ./my_weights/ffn_down_2.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_2.npz
+✓ 保存权重: ./my_weights/ffn_norm_2.npz
+✓ 保存权重: ./my_weights/attn_norm_3.npz
+✓ 保存权重: ./my_weights/attn_o_3.npz
+✓ 保存权重: ./my_weights/attn_qkv_3.npz
+✓ 保存权重: ./my_weights/ffn_down_3.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_3.npz
+✓ 保存权重: ./my_weights/ffn_norm_3.npz
+✓ 保存权重: ./my_weights/attn_norm_4.npz
+✓ 保存权重: ./my_weights/attn_o_4.npz
+✓ 保存权重: ./my_weights/attn_qkv_4.npz
+✓ 保存权重: ./my_weights/ffn_down_4.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_4.npz
+✓ 保存权重: ./my_weights/ffn_norm_4.npz
+✓ 保存权重: ./my_weights/attn_norm_5.npz
+✓ 保存权重: ./my_weights/attn_o_5.npz
+✓ 保存权重: ./my_weights/attn_qkv_5.npz
+✓ 保存权重: ./my_weights/ffn_down_5.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_5.npz
+✓ 保存权重: ./my_weights/ffn_norm_5.npz
+✓ 保存权重: ./my_weights/attn_norm_6.npz
+✓ 保存权重: ./my_weights/attn_o_6.npz
+✓ 保存权重: ./my_weights/attn_qkv_6.npz
+✓ 保存权重: ./my_weights/ffn_down_6.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_6.npz
+✓ 保存权重: ./my_weights/ffn_norm_6.npz
+✓ 保存权重: ./my_weights/attn_norm_7.npz
+✓ 保存权重: ./my_weights/attn_o_7.npz
+✓ 保存权重: ./my_weights/attn_qkv_7.npz
+✓ 保存权重: ./my_weights/ffn_down_7.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_7.npz
+✓ 保存权重: ./my_weights/ffn_norm_7.npz
+✓ 保存权重: ./my_weights/attn_norm_8.npz
+✓ 保存权重: ./my_weights/attn_o_8.npz
+✓ 保存权重: ./my_weights/attn_qkv_8.npz
+✓ 保存权重: ./my_weights/ffn_down_8.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_8.npz
+✓ 保存权重: ./my_weights/ffn_norm_8.npz
+✓ 保存权重: ./my_weights/attn_norm_9.npz
+✓ 保存权重: ./my_weights/attn_o_9.npz
+✓ 保存权重: ./my_weights/attn_qkv_9.npz
+✓ 保存权重: ./my_weights/ffn_down_9.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_9.npz
+✓ 保存权重: ./my_weights/ffn_norm_9.npz
+✓ 保存权重: ./my_weights/attn_norm_10.npz
+✓ 保存权重: ./my_weights/attn_o_10.npz
+✓ 保存权重: ./my_weights/attn_qkv_10.npz
+✓ 保存权重: ./my_weights/ffn_down_10.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_10.npz
+✓ 保存权重: ./my_weights/ffn_norm_10.npz
+✓ 保存权重: ./my_weights/attn_norm_11.npz
+✓ 保存权重: ./my_weights/attn_o_11.npz
+✓ 保存权重: ./my_weights/attn_qkv_11.npz
+✓ 保存权重: ./my_weights/ffn_down_11.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_11.npz
+✓ 保存权重: ./my_weights/ffn_norm_11.npz
+✓ 保存权重: ./my_weights/attn_norm_12.npz
+✓ 保存权重: ./my_weights/attn_o_12.npz
+✓ 保存权重: ./my_weights/attn_qkv_12.npz
+✓ 保存权重: ./my_weights/ffn_down_12.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_12.npz
+✓ 保存权重: ./my_weights/ffn_norm_12.npz
+✓ 保存权重: ./my_weights/attn_norm_13.npz
+✓ 保存权重: ./my_weights/attn_o_13.npz
+✓ 保存权重: ./my_weights/attn_qkv_13.npz
+✓ 保存权重: ./my_weights/ffn_down_13.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_13.npz
+✓ 保存权重: ./my_weights/ffn_norm_13.npz
+✓ 保存权重: ./my_weights/attn_norm_14.npz
+✓ 保存权重: ./my_weights/attn_o_14.npz
+✓ 保存权重: ./my_weights/attn_qkv_14.npz
+✓ 保存权重: ./my_weights/ffn_down_14.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_14.npz
+✓ 保存权重: ./my_weights/ffn_norm_14.npz
+✓ 保存权重: ./my_weights/attn_norm_15.npz
+✓ 保存权重: ./my_weights/attn_o_15.npz
+✓ 保存权重: ./my_weights/attn_qkv_15.npz
+✓ 保存权重: ./my_weights/ffn_down_15.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_15.npz
+✓ 保存权重: ./my_weights/ffn_norm_15.npz
+✓ 保存权重: ./my_weights/attn_norm_16.npz
+✓ 保存权重: ./my_weights/attn_o_16.npz
+✓ 保存权重: ./my_weights/attn_qkv_16.npz
+✓ 保存权重: ./my_weights/ffn_down_16.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_16.npz
+✓ 保存权重: ./my_weights/ffn_norm_16.npz
+✓ 保存权重: ./my_weights/attn_norm_17.npz
+✓ 保存权重: ./my_weights/attn_o_17.npz
+✓ 保存权重: ./my_weights/attn_qkv_17.npz
+✓ 保存权重: ./my_weights/ffn_down_17.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_17.npz
+✓ 保存权重: ./my_weights/ffn_norm_17.npz
+✓ 保存权重: ./my_weights/attn_norm_18.npz
+✓ 保存权重: ./my_weights/attn_o_18.npz
+✓ 保存权重: ./my_weights/attn_qkv_18.npz
+✓ 保存权重: ./my_weights/ffn_down_18.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_18.npz
+✓ 保存权重: ./my_weights/ffn_norm_18.npz
+✓ 保存权重: ./my_weights/attn_norm_19.npz
+✓ 保存权重: ./my_weights/attn_o_19.npz
+✓ 保存权重: ./my_weights/attn_qkv_19.npz
+✓ 保存权重: ./my_weights/ffn_down_19.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_19.npz
+✓ 保存权重: ./my_weights/ffn_norm_19.npz
+✓ 保存权重: ./my_weights/attn_norm_20.npz
+✓ 保存权重: ./my_weights/attn_o_20.npz
+✓ 保存权重: ./my_weights/attn_qkv_20.npz
+✓ 保存权重: ./my_weights/ffn_down_20.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_20.npz
+✓ 保存权重: ./my_weights/ffn_norm_20.npz
+✓ 保存权重: ./my_weights/attn_norm_21.npz
+✓ 保存权重: ./my_weights/attn_o_21.npz
+✓ 保存权重: ./my_weights/attn_qkv_21.npz
+✓ 保存权重: ./my_weights/ffn_down_21.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_21.npz
+✓ 保存权重: ./my_weights/ffn_norm_21.npz
+✓ 保存权重: ./my_weights/attn_norm_22.npz
+✓ 保存权重: ./my_weights/attn_o_22.npz
+✓ 保存权重: ./my_weights/attn_qkv_22.npz
+✓ 保存权重: ./my_weights/ffn_down_22.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_22.npz
+✓ 保存权重: ./my_weights/ffn_norm_22.npz
+✓ 保存权重: ./my_weights/attn_norm_23.npz
+✓ 保存权重: ./my_weights/attn_o_23.npz
+✓ 保存权重: ./my_weights/attn_qkv_23.npz
+✓ 保存权重: ./my_weights/ffn_down_23.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_23.npz
+✓ 保存权重: ./my_weights/ffn_norm_23.npz
+✓ 保存权重: ./my_weights/attn_norm_24.npz
+✓ 保存权重: ./my_weights/attn_o_24.npz
+✓ 保存权重: ./my_weights/attn_qkv_24.npz
+✓ 保存权重: ./my_weights/ffn_down_24.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_24.npz
+✓ 保存权重: ./my_weights/ffn_norm_24.npz
+✓ 保存权重: ./my_weights/attn_norm_25.npz
+✓ 保存权重: ./my_weights/attn_o_25.npz
+✓ 保存权重: ./my_weights/attn_qkv_25.npz
+✓ 保存权重: ./my_weights/ffn_down_25.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_25.npz
+✓ 保存权重: ./my_weights/ffn_norm_25.npz
+✓ 保存权重: ./my_weights/attn_norm_26.npz
+✓ 保存权重: ./my_weights/attn_o_26.npz
+✓ 保存权重: ./my_weights/attn_qkv_26.npz
+✓ 保存权重: ./my_weights/ffn_down_26.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_26.npz
+✓ 保存权重: ./my_weights/ffn_norm_26.npz
+✓ 保存权重: ./my_weights/attn_norm_27.npz
+✓ 保存权重: ./my_weights/attn_o_27.npz
+✓ 保存权重: ./my_weights/attn_qkv_27.npz
+✓ 保存权重: ./my_weights/ffn_down_27.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_27.npz
+✓ 保存权重: ./my_weights/ffn_norm_27.npz
+✓ 保存权重: ./my_weights/attn_norm_28.npz
+✓ 保存权重: ./my_weights/attn_o_28.npz
+✓ 保存权重: ./my_weights/attn_qkv_28.npz
+✓ 保存权重: ./my_weights/ffn_down_28.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_28.npz
+✓ 保存权重: ./my_weights/ffn_norm_28.npz
+✓ 保存权重: ./my_weights/attn_norm_29.npz
+✓ 保存权重: ./my_weights/attn_o_29.npz
+✓ 保存权重: ./my_weights/attn_qkv_29.npz
+✓ 保存权重: ./my_weights/ffn_down_29.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_29.npz
+✓ 保存权重: ./my_weights/ffn_norm_29.npz
+✓ 保存权重: ./my_weights/attn_norm_30.npz
+✓ 保存权重: ./my_weights/attn_o_30.npz
+✓ 保存权重: ./my_weights/attn_qkv_30.npz
+✓ 保存权重: ./my_weights/ffn_down_30.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_30.npz
+✓ 保存权重: ./my_weights/ffn_norm_30.npz
+✓ 保存权重: ./my_weights/attn_norm_31.npz
+✓ 保存权重: ./my_weights/attn_o_31.npz
+✓ 保存权重: ./my_weights/attn_qkv_31.npz
+✓ 保存权重: ./my_weights/ffn_down_31.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_31.npz
+✓ 保存权重: ./my_weights/ffn_norm_31.npz
+✓ 保存权重: ./my_weights/attn_norm_32.npz
+✓ 保存权重: ./my_weights/attn_o_32.npz
+✓ 保存权重: ./my_weights/attn_qkv_32.npz
+✓ 保存权重: ./my_weights/ffn_down_32.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_32.npz
+✓ 保存权重: ./my_weights/ffn_norm_32.npz
+✓ 保存权重: ./my_weights/attn_norm_33.npz
+✓ 保存权重: ./my_weights/attn_o_33.npz
+✓ 保存权重: ./my_weights/attn_qkv_33.npz
+✓ 保存权重: ./my_weights/ffn_down_33.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_33.npz
+✓ 保存权重: ./my_weights/ffn_norm_33.npz
+✓ 保存权重: ./my_weights/attn_norm_34.npz
+✓ 保存权重: ./my_weights/attn_o_34.npz
+✓ 保存权重: ./my_weights/attn_qkv_34.npz
+✓ 保存权重: ./my_weights/ffn_down_34.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_34.npz
+✓ 保存权重: ./my_weights/ffn_norm_34.npz
+✓ 保存权重: ./my_weights/attn_norm_35.npz
+✓ 保存权重: ./my_weights/attn_o_35.npz
+✓ 保存权重: ./my_weights/attn_qkv_35.npz
+✓ 保存权重: ./my_weights/ffn_down_35.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_35.npz
+✓ 保存权重: ./my_weights/ffn_norm_35.npz
+✓ 保存权重: ./my_weights/attn_norm_36.npz
+✓ 保存权重: ./my_weights/attn_o_36.npz
+✓ 保存权重: ./my_weights/attn_qkv_36.npz
+✓ 保存权重: ./my_weights/ffn_down_36.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_36.npz
+✓ 保存权重: ./my_weights/ffn_norm_36.npz
+✓ 保存权重: ./my_weights/attn_norm_37.npz
+✓ 保存权重: ./my_weights/attn_o_37.npz
+✓ 保存权重: ./my_weights/attn_qkv_37.npz
+✓ 保存权重: ./my_weights/ffn_down_37.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_37.npz
+✓ 保存权重: ./my_weights/ffn_norm_37.npz
+✓ 保存权重: ./my_weights/attn_norm_38.npz
+✓ 保存权重: ./my_weights/attn_o_38.npz
+✓ 保存权重: ./my_weights/attn_qkv_38.npz
+✓ 保存权重: ./my_weights/ffn_down_38.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_38.npz
+✓ 保存权重: ./my_weights/ffn_norm_38.npz
+✓ 保存权重: ./my_weights/attn_norm_39.npz
+✓ 保存权重: ./my_weights/attn_o_39.npz
+✓ 保存权重: ./my_weights/attn_qkv_39.npz
+✓ 保存权重: ./my_weights/ffn_down_39.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_39.npz
+✓ 保存权重: ./my_weights/ffn_norm_39.npz
+✓ 保存权重: ./my_weights/attn_norm_40.npz
+✓ 保存权重: ./my_weights/attn_o_40.npz
+✓ 保存权重: ./my_weights/attn_qkv_40.npz
+✓ 保存权重: ./my_weights/ffn_down_40.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_40.npz
+✓ 保存权重: ./my_weights/ffn_norm_40.npz
+✓ 保存权重: ./my_weights/attn_norm_41.npz
+✓ 保存权重: ./my_weights/attn_o_41.npz
+✓ 保存权重: ./my_weights/attn_qkv_41.npz
+✓ 保存权重: ./my_weights/ffn_down_41.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_41.npz
+✓ 保存权重: ./my_weights/ffn_norm_41.npz
+✓ 保存权重: ./my_weights/attn_norm_42.npz
+✓ 保存权重: ./my_weights/attn_o_42.npz
+✓ 保存权重: ./my_weights/attn_qkv_42.npz
+✓ 保存权重: ./my_weights/ffn_down_42.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_42.npz
+✓ 保存权重: ./my_weights/ffn_norm_42.npz
+✓ 保存权重: ./my_weights/attn_norm_43.npz
+✓ 保存权重: ./my_weights/attn_o_43.npz
+✓ 保存权重: ./my_weights/attn_qkv_43.npz
+✓ 保存权重: ./my_weights/ffn_down_43.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_43.npz
+✓ 保存权重: ./my_weights/ffn_norm_43.npz
+✓ 保存权重: ./my_weights/attn_norm_44.npz
+✓ 保存权重: ./my_weights/attn_o_44.npz
+✓ 保存权重: ./my_weights/attn_qkv_44.npz
+✓ 保存权重: ./my_weights/ffn_down_44.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_44.npz
+✓ 保存权重: ./my_weights/ffn_norm_44.npz
+✓ 保存权重: ./my_weights/attn_norm_45.npz
+✓ 保存权重: ./my_weights/attn_o_45.npz
+✓ 保存权重: ./my_weights/attn_qkv_45.npz
+✓ 保存权重: ./my_weights/ffn_down_45.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_45.npz
+✓ 保存权重: ./my_weights/ffn_norm_45.npz
+✓ 保存权重: ./my_weights/attn_norm_46.npz
+✓ 保存权重: ./my_weights/attn_o_46.npz
+✓ 保存权重: ./my_weights/attn_qkv_46.npz
+✓ 保存权重: ./my_weights/ffn_down_46.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_46.npz
+✓ 保存权重: ./my_weights/ffn_norm_46.npz
+✓ 保存权重: ./my_weights/attn_norm_47.npz
+✓ 保存权重: ./my_weights/attn_o_47.npz
+✓ 保存权重: ./my_weights/attn_qkv_47.npz
+✓ 保存权重: ./my_weights/ffn_down_47.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_47.npz
+✓ 保存权重: ./my_weights/ffn_norm_47.npz
+✓ 保存权重: ./my_weights/attn_norm_48.npz
+✓ 保存权重: ./my_weights/attn_o_48.npz
+✓ 保存权重: ./my_weights/attn_qkv_48.npz
+✓ 保存权重: ./my_weights/ffn_down_48.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_48.npz
+✓ 保存权重: ./my_weights/ffn_norm_48.npz
+✓ 保存权重: ./my_weights/attn_norm_49.npz
+✓ 保存权重: ./my_weights/attn_o_49.npz
+✓ 保存权重: ./my_weights/attn_qkv_49.npz
+✓ 保存权重: ./my_weights/ffn_down_49.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_49.npz
+✓ 保存权重: ./my_weights/ffn_norm_49.npz
+✓ 保存权重: ./my_weights/attn_norm_50.npz
+✓ 保存权重: ./my_weights/attn_o_50.npz
+✓ 保存权重: ./my_weights/attn_qkv_50.npz
+✓ 保存权重: ./my_weights/ffn_down_50.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_50.npz
+✓ 保存权重: ./my_weights/ffn_norm_50.npz
+✓ 保存权重: ./my_weights/attn_norm_51.npz
+✓ 保存权重: ./my_weights/attn_o_51.npz
+✓ 保存权重: ./my_weights/attn_qkv_51.npz
+✓ 保存权重: ./my_weights/ffn_down_51.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_51.npz
+✓ 保存权重: ./my_weights/ffn_norm_51.npz
+✓ 保存权重: ./my_weights/attn_norm_52.npz
+✓ 保存权重: ./my_weights/attn_o_52.npz
+✓ 保存权重: ./my_weights/attn_qkv_52.npz
+✓ 保存权重: ./my_weights/ffn_down_52.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_52.npz
+✓ 保存权重: ./my_weights/ffn_norm_52.npz
+✓ 保存权重: ./my_weights/attn_norm_53.npz
+✓ 保存权重: ./my_weights/attn_o_53.npz
+✓ 保存权重: ./my_weights/attn_qkv_53.npz
+✓ 保存权重: ./my_weights/ffn_down_53.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_53.npz
+✓ 保存权重: ./my_weights/ffn_norm_53.npz
+✓ 保存权重: ./my_weights/attn_norm_54.npz
+✓ 保存权重: ./my_weights/attn_o_54.npz
+✓ 保存权重: ./my_weights/attn_qkv_54.npz
+✓ 保存权重: ./my_weights/ffn_down_54.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_54.npz
+✓ 保存权重: ./my_weights/ffn_norm_54.npz
+✓ 保存权重: ./my_weights/attn_norm_55.npz
+✓ 保存权重: ./my_weights/attn_o_55.npz
+✓ 保存权重: ./my_weights/attn_qkv_55.npz
+✓ 保存权重: ./my_weights/ffn_down_55.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_55.npz
+✓ 保存权重: ./my_weights/ffn_norm_55.npz
+✓ 保存权重: ./my_weights/attn_norm_56.npz
+✓ 保存权重: ./my_weights/attn_o_56.npz
+✓ 保存权重: ./my_weights/attn_qkv_56.npz
+✓ 保存权重: ./my_weights/ffn_down_56.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_56.npz
+✓ 保存权重: ./my_weights/ffn_norm_56.npz
+✓ 保存权重: ./my_weights/attn_norm_57.npz
+✓ 保存权重: ./my_weights/attn_o_57.npz
+✓ 保存权重: ./my_weights/attn_qkv_57.npz
+✓ 保存权重: ./my_weights/ffn_down_57.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_57.npz
+✓ 保存权重: ./my_weights/ffn_norm_57.npz
+✓ 保存权重: ./my_weights/attn_norm_58.npz
+✓ 保存权重: ./my_weights/attn_o_58.npz
+✓ 保存权重: ./my_weights/attn_qkv_58.npz
+✓ 保存权重: ./my_weights/ffn_down_58.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_58.npz
+✓ 保存权重: ./my_weights/ffn_norm_58.npz
+✓ 保存权重: ./my_weights/attn_norm_59.npz
+✓ 保存权重: ./my_weights/attn_o_59.npz
+✓ 保存权重: ./my_weights/attn_qkv_59.npz
+✓ 保存权重: ./my_weights/ffn_down_59.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_59.npz
+✓ 保存权重: ./my_weights/ffn_norm_59.npz
+✓ 保存权重: ./my_weights/attn_norm_60.npz
+✓ 保存权重: ./my_weights/attn_o_60.npz
+✓ 保存权重: ./my_weights/attn_qkv_60.npz
+✓ 保存权重: ./my_weights/ffn_down_60.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_60.npz
+✓ 保存权重: ./my_weights/ffn_norm_60.npz
+✓ 保存权重: ./my_weights/attn_norm_61.npz
+✓ 保存权重: ./my_weights/attn_o_61.npz
+✓ 保存权重: ./my_weights/attn_qkv_61.npz
+✓ 保存权重: ./my_weights/ffn_down_61.npz
+✓ 保存权重: ./my_weights/ffn_gate_up_61.npz
+✓ 保存权重: ./my_weights/ffn_norm_61.npz
+✓ 保存映射信息: ./my_weights/weight_mapping.json
+
+权重提取完成，已保存到: ./my_weights
+
+完整分析报告已保存至: /home/y__g/fm9g-4B-sft-v1.0-Q8_0_structure_analysis.json
+正在解析GGUF文件结构...
+✓ 文件头解析完成 - GGUF v3
+✓ 元数据解析完成 - 30 项
+✓ 张量信息解析完成 - 374 个张量
+✓ 架构信息提取完成
+✓ 量化分析完成
+
+================================================================================
+GGUF文件结构深度分析报告
+================================================================================
+
+文件格式信息:
+  魔数: GGUF (0x47475546)
+  版本: 3
+  张量数量: 374
+  元数据条目: 30
+
+模型架构参数:
+  基础架构: llama
+  模型名称: 4b
+  参数规模: 4.1B
+  词汇表大小: 73,448
+  上下文长度: 32,768
+  嵌入维度: 2,560
+  Transformer层数: 62
+  注意力头数: 40
+  KV头数: 4
+  GQA分组比例: 1:10
+  头维度: 64
+  FFN维度: 6,400
+  RoPE频率基数: 1,000,000
+
+量化策略分析:
+  总参数量: 4,129,681,920
+  文件大小: 4.09 GB
+  未压缩大小: 15.38 GB (FP32)
+  压缩比率: 3.76x
+  空间节省: 73.4%
+
+量化类型分布:
+  F32: 125 张量, 320,000 参数 (0.0%)
+  Q8_0: 249 张量, 4,129,361,920 参数 (100.0%)
+    规格: 8位量化，32元素块，1个FP16缩放因子
+    块大小: 32, 每块字节: 34
+
+Q8_0量化详细信息:
+  量化方法: 8位块量化，每32个权重为一组
+  存储格式: 每块包含32个int8值 + 1个float16缩放因子
+  总量化块数: 129,042,560
+  相比FP32压缩比: 3.76x
+
+层级量化模式:
+  attn_norm:
+    F32: 62 层
+  attn_output:
+    Q8_0: 62 层
+  attn_qkv:
+    Q8_0: 62 层
+  ffn_down:
+    Q8_0: 62 层
+  ffn_gate_up:
+    Q8_0: 62 层
+  ffn_norm:
+    F32: 62 层
+
+完整分析报告已保存至: /home/y__g/fm9g-4B-sft-v1.0-Q8_0_structure_analysis.json
