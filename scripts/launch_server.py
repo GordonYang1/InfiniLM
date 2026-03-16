@@ -1,4 +1,5 @@
 from jiuge import JiugeForCauslLM
+from jiuge_awq import JiugeAWQForCausalLM
 from libinfinicore_infer import DeviceType
 from infer_task import InferTask
 from kvcache_pool import KVCachePool
@@ -19,11 +20,16 @@ import janus
 DEVICE_TYPE_MAP = {
     "cpu": DeviceType.DEVICE_TYPE_CPU,
     "nvidia": DeviceType.DEVICE_TYPE_NVIDIA,
+    "qy": DeviceType.DEVICE_TYPE_QY,
     "cambricon": DeviceType.DEVICE_TYPE_CAMBRICON,
     "ascend": DeviceType.DEVICE_TYPE_ASCEND,
     "metax": DeviceType.DEVICE_TYPE_METAX,
     "moore": DeviceType.DEVICE_TYPE_MOORE,
+    "iluvatar": DeviceType.DEVICE_TYPE_ILUVATAR,
+    "kunlun": DeviceType.DEVICE_TYPE_KUNLUN,
+    "hygon": DeviceType.DEVICE_TYPE_HYGON,
 }
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Launch the LLM inference server.")
@@ -58,18 +64,25 @@ def parse_args():
         default=None,
         help="Max token sequence length that model will handle (follows model config if not provided)",
     )
+    parser.add_argument(
+        "--awq",
+        action="store_true",
+        help="Whether to use AWQ quantized model (default: False)",
+    )
     return parser.parse_args()
+
 
 args = parse_args()
 device_type = DEVICE_TYPE_MAP[args.dev]
 model_path = args.model_path
 ndev = args.ndev
 max_tokens = args.max_tokens
-
+USE_AWQ = args.awq
 MAX_BATCH = args.max_batch
 print(
     f"Using MAX_BATCH={MAX_BATCH}. Try reduce this value if out of memory error occurs."
 )
+
 
 def chunk_json(id_, content=None, role=None, finish_reason=None):
     delta = {}
@@ -86,6 +99,7 @@ def chunk_json(id_, content=None, role=None, finish_reason=None):
         "choices": [
             {
                 "index": 0,
+                "text": content,
                 "delta": delta,
                 "logprobs": None,
                 "finish_reason": finish_reason,
@@ -109,7 +123,14 @@ class AsyncInferTask(InferTask):
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    app.state.model = JiugeForCauslLM(model_path, device_type, ndev, max_tokens=max_tokens)
+    if USE_AWQ:
+        app.state.model = JiugeAWQForCausalLM(
+            model_path, device_type, ndev, max_tokens=max_tokens
+        )
+    else:
+        app.state.model = JiugeForCauslLM(
+            model_path, device_type, ndev, max_tokens=max_tokens
+        )
     app.state.kv_cache_pool = KVCachePool(app.state.model, MAX_BATCH)
     app.state.request_queue = janus.Queue()
     worker_thread = threading.Thread(target=worker_loop, args=(app,), daemon=True)
@@ -207,11 +228,8 @@ async def chat_stream(id_, request_data, request: Request):
                 break
 
             token = await infer_task.output_queue.async_q.get()
-            content = (
-                request.app.state.model.tokenizer._tokenizer.id_to_token(token)
-                .replace("▁", " ")
-                .replace("<0x0A>", "\n")
-            )
+            content = request.app.state.model.tokenizer.decode(token)
+
             chunk = json.dumps(chunk_json(id_, content=content), ensure_ascii=False)
             yield f"data: {chunk}\n\n"
 
@@ -236,11 +254,7 @@ async def chat(id_, request_data, request: Request):
                 break
 
             token = await infer_task.output_queue.async_q.get()
-            content = (
-                request.app.state.model.tokenizer._tokenizer.id_to_token(token)
-                .replace("▁", " ")
-                .replace("<0x0A>", "\n")
-            )
+            content = request.app.state.model.tokenizer.decode(token)
             output.append(content)
 
         output_text = "".join(output).strip()
@@ -263,9 +277,15 @@ async def chat(id_, request_data, request: Request):
 @App.post("/chat/completions")
 async def chat_completions(request: Request):
     data = await request.json()
+    print('-----------------------------------------')
+    print(data)
+    print('-----------------------------------------')
 
     if not data.get("messages"):
-        return JSONResponse(content={"error": "No message provided"}, status_code=400)
+        if not data.get("prompt"):
+            return JSONResponse(content={"error": "No message provided"}, status_code=400)
+        else:
+            data['messages'] = [{"role": "user", "content": data.get("prompt")}]
 
     stream = data.get("stream", False)
     id_ = f"cmpl-{uuid.uuid4().hex}"
@@ -276,6 +296,7 @@ async def chat_completions(request: Request):
     else:
         response = await chat(id_, data, request)
         return JSONResponse(content=response)
+
 
 if __name__ == "__main__":
     uvicorn.run(App, host="0.0.0.0", port=8000)

@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
+void createDeviceResource(JiugeDeviceResource *rsrc, const JiugeMeta *meta,
                           const JiugeWeights *weights,
                           infiniDevice_t device, int idev,
                           int ndev, int dev_id,
@@ -21,7 +21,7 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
     infinirtStream_t stream;
     infinirtStreamCreate(&stream);
 
-    std::vector<std::shared_ptr<Tensor>> w_attn_norm, w_attn_qkv, b_attn_qkv, w_attn_out,
+    std::vector<std::shared_ptr<Tensor>> w_attn_norm, w_attn_qkv, b_attn_qkv, w_attn_q_norm, w_attn_k_norm, w_attn_out,
         w_ffn_norm, w_ffn_gate_up, w_ffn_down;
     for (size_t layer = 0; layer < meta->nlayer; layer++) {
         w_attn_norm.push_back(
@@ -31,6 +31,13 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
         if (weights->attn_qkv_b != nullptr) {
             b_attn_qkv.push_back(
                 getAttnQKVBias(meta, weights, layer, idev, ndev));
+        }
+
+        if (weights->attn_q_norm != nullptr) {
+            w_attn_q_norm.push_back(
+                getAttnQNorm(meta, weights, layer));
+            w_attn_k_norm.push_back(
+                getAttnKNorm(meta, weights, layer));
         }
         w_attn_out.push_back(
             getAttnO(meta, weights, layer, idev, ndev));
@@ -44,7 +51,7 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
 
     auto memory_pool = std::make_shared<MemoryPool>(128 * 1024 * 1024);
 
-    *rsrc = DeviceResource{
+    *rsrc = JiugeDeviceResource{
         device,
         dev_id,
         handle,
@@ -56,6 +63,8 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
         w_attn_norm,
         w_attn_qkv,
         b_attn_qkv,
+        w_attn_q_norm,
+        w_attn_k_norm,
         w_attn_out,
         w_ffn_norm,
         w_ffn_gate_up,
@@ -67,7 +76,7 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeMeta *meta,
     RUN_INFINI(infinirtDeviceSynchronize());
 }
 
-void releaseDeviceResource(DeviceResource &res) {
+void releaseDeviceResource(JiugeDeviceResource &res) {
     infinirtDeviceSynchronize();
     // Release individual Tensors
     res.w_in_embd.reset();
@@ -111,7 +120,7 @@ void releaseDeviceResource(DeviceResource &res) {
     res.comm = nullptr;
 }
 
-void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
+void inferDeviceBatch(const JiugeMeta &meta, JiugeDeviceResource &rsrc,
                       uint32_t idev, uint32_t ndev,
                       const uint32_t *tokens, uint32_t ntok,
                       const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
@@ -130,6 +139,7 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
     auto dvoc = meta.dvoc;
     auto stream = rsrc.stream;
     bool has_qkv_bias = rsrc.b_attn_qkv.size() > 0;
+    bool has_qk_norm = rsrc.w_attn_q_norm.size() > 0 && rsrc.w_attn_k_norm.size() > 0;
 
     // Allocate buffers
     auto logits_in = Tensor::buffer(dt_logits, {ntok, d}, rsrc.memory_pool);
@@ -142,6 +152,8 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
     auto result_cpu = std::vector<int64_t>(nreq);
 
     auto qkv_rope = qkv_buf->view({ntok, nh + nkvh * 2, dh});
+    auto q_buf = qkv_rope->slice(1, 0, nh);
+    auto k_buf = qkv_rope->slice(1, nh, nkvh);
 
     // Prepare inputs
     auto batch_pos_ids = std::vector<uint32_t>(ntok);
@@ -181,7 +193,7 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
         max_seq_len = std::max(max_seq_len, size_t(seq_len));
     }
 
-    auto qk_buf = Tensor::buffer(dt_logits, {nh, max_qk_size}, rsrc.memory_pool);
+    auto qk_buf = Tensor::buffer(dt_logits, {nh * max_qk_size}, rsrc.memory_pool);
     auto rearrange_q_buf = Tensor::buffer(dt_logits, {nkvh, ngroup * max_seq_len, dh}, rsrc.memory_pool);
     auto q_rearrange = rearrange_q_buf->view({nkvh, ngroup, max_seq_len, dh});
     auto attn_val_buf = Tensor::buffer(dt_logits, {nkvh, ngroup * max_seq_len, dh}, rsrc.memory_pool);
@@ -198,9 +210,15 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
         rmsnorm(logits_out, logits_in, rsrc.w_attn_norm[layer], meta.epsilon);
         // qkv_proj
         linear(qkv_buf, logits_out, rsrc.w_attn_qkv[layer], 1.0, 0.0, nullptr, has_qkv_bias ? rsrc.b_attn_qkv[layer] : nullptr);
+
+        if (has_qk_norm) {
+            rmsnorm(q_buf, q_buf, rsrc.w_attn_q_norm[layer], meta.epsilon);
+            rmsnorm(k_buf, k_buf, rsrc.w_attn_k_norm[layer], meta.epsilon);
+        }
+
         // rope
-        rope(qkv_rope->slice(1, 0, nh), qkv_rope->slice(1, 0, nh), pos_ids_buf, rsrc.sin_table, rsrc.cos_table);
-        rope(qkv_rope->slice(1, nh, nkvh), qkv_rope->slice(1, nh, nkvh), pos_ids_buf, rsrc.sin_table, rsrc.cos_table);
+        rope(q_buf, q_buf, pos_ids_buf, rsrc.sin_table, rsrc.cos_table);
+        rope(k_buf, k_buf, pos_ids_buf, rsrc.sin_table, rsrc.cos_table);
 
         size_t token_offset = 0;
         for (uint32_t req = 0; req < nreq; req++) {
@@ -218,11 +236,11 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
             rearrange(kv_caches[req]->v[idev][layer]->slice(0, past_len, seq_len), v);
             // qk
             rearrange(q_rearrange->slice(2, 0, seq_len), q);
-            auto qk_gemm = qk_buf->slice(1, 0, seq_len * total_len)->view({nkvh, ngroup * seq_len, total_len});
+            auto qk_gemm = qk_buf->slice(0, 0, nh * seq_len * total_len)->view({nkvh, ngroup * seq_len, total_len});
             auto k_gemm = kv_caches[req]->k[idev][layer]->slice(0, 0, total_len)->permute({1, 2, 0});
             linear(qk_gemm, rearrange_q_buf->slice(1, 0, ngroup * seq_len), k_gemm, 1.f / float(sqrt(dh)), 0.f, nullptr, nullptr);
             // softmax
-            auto qk_softmax = qk_buf->slice(1, 0, seq_len * total_len)->view({nh, seq_len, total_len});
+            auto qk_softmax = qk_gemm->view({nh, seq_len, total_len});
             causalSoftmax(qk_softmax, qk_softmax);
             auto v_gemm = kv_caches[req]->v[idev][layer]->slice(0, 0, total_len)->permute({1, 0, 2});
             linear(attn_val_buf->slice(1, 0, ngroup * seq_len), qk_gemm, v_gemm, 1.f, 0.f, nullptr, nullptr);
@@ -297,13 +315,13 @@ void inferDeviceBatch(const JiugeMeta &meta, DeviceResource &rsrc,
     }
 }
 
-__C void
-inferBatch(struct JiugeModel *model,
-           const uint32_t *tokens, uint32_t ntok,
-           const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
-           struct KVCache **kv_caches,
-           const float *temperature, const uint32_t *topk, const float *topp,
-           uint32_t *output) {
+__INFINI_C void
+inferBatchJiuge(struct JiugeModel *model,
+                const uint32_t *tokens, uint32_t ntok,
+                const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
+                struct KVCache **kv_caches,
+                const float *temperature, const uint32_t *topk, const float *topp,
+                uint32_t *output) {
     model->req.tokens = tokens;
     model->req.ntok = ntok;
     model->req.req_lens = req_lens;
@@ -330,12 +348,12 @@ inferBatch(struct JiugeModel *model,
     }
 }
 
-__C void
-forwardBatch(struct JiugeModel *model,
-             const uint32_t *tokens, uint32_t ntok,
-             const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
-             struct KVCache **kv_caches,
-             void *logits) {
+__INFINI_C void
+forwardBatchJiuge(struct JiugeModel *model,
+                  const uint32_t *tokens, uint32_t ntok,
+                  const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
+                  struct KVCache **kv_caches,
+                  void *logits) {
     model->req.tokens = tokens;
     model->req.ntok = ntok;
     model->req.req_lens = req_lens;
@@ -362,16 +380,17 @@ forwardBatch(struct JiugeModel *model,
     }
 }
 
-void launchDevice(const JiugeMeta &meta, const JiugeWeights *weights, DeviceResource *rsrc, InferState &state, InferRequest &req,
+void launchDevice(const JiugeMeta &meta, const JiugeWeights *weights, JiugeDeviceResource *rsrc, InferState &state, InferRequest &req,
                   infiniDevice_t device, int idev, int ndev, int dev_id, infinicclComm_t comm) {
+    // Create Device Resource
+    createDeviceResource(rsrc, &meta, weights, device, idev, ndev, dev_id, comm);
+
     CacheManager cache_manager(100);
-    InferenceContext ctx(rsrc, &cache_manager, rsrc->stream);
+    InferenceContext ctx(rsrc->handle, rsrc->memory_pool, &cache_manager, rsrc->stream);
 
     // Set the inference context for this thread
     setInferenceContext(&ctx);
 
-    // Create Device Resource
-    createDeviceResource(rsrc, &meta, weights, device, idev, ndev, dev_id, comm);
     {
         std::unique_lock<std::mutex> lock(state.mtx);
         state.loaded = true;
@@ -406,7 +425,7 @@ JiugeModel::JiugeModel(const JiugeMeta *_meta, const JiugeWeights *weights, infi
     int ndev = int(device_ids.size());
     device = device_;
     dev_ids = device_ids;
-    dev_resources = std::vector<DeviceResource>(ndev);
+    dev_resources = std::vector<JiugeDeviceResource>(ndev);
     states = std::vector<InferState>(ndev);
     threads.resize(ndev);
     RUN_INFINI(infinirtInit());
@@ -425,7 +444,7 @@ JiugeModel::JiugeModel(const JiugeMeta *_meta, const JiugeWeights *weights, infi
     }
 }
 
-__C struct JiugeModel *
+__INFINI_C struct JiugeModel *
 createJiugeModel(const JiugeMeta *meta,
                  const JiugeWeights *weights,
                  infiniDevice_t device,
@@ -437,7 +456,7 @@ createJiugeModel(const JiugeMeta *meta,
     return model;
 }
 
-__C void destroyJiugeModel(struct JiugeModel *model) {
+__INFINI_C void destroyJiugeModel(struct JiugeModel *model) {
     auto ndev = model->dev_resources.size();
 
     for (size_t idev = 0; idev < ndev; idev++) {

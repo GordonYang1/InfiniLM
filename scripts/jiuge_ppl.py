@@ -7,19 +7,27 @@ from libinfinicore_infer import DeviceType
 DEVICE_TYPE_MAP = {
     "cpu": DeviceType.DEVICE_TYPE_CPU,
     "nvidia": DeviceType.DEVICE_TYPE_NVIDIA,
+    "qy": DeviceType.DEVICE_TYPE_QY,
     "cambricon": DeviceType.DEVICE_TYPE_CAMBRICON,
     "ascend": DeviceType.DEVICE_TYPE_ASCEND,
     "metax": DeviceType.DEVICE_TYPE_METAX,
     "moore": DeviceType.DEVICE_TYPE_MOORE,
+    "iluvatar": DeviceType.DEVICE_TYPE_ILUVATAR,
+    "kunlun": DeviceType.DEVICE_TYPE_KUNLUN,
+    "hygon": DeviceType.DEVICE_TYPE_HYGON,
 }
 
 TORCH_DEVICE_TYPE_MAP = {
     "cpu": "cpu",
     "nvidia": "cuda",
+    "qy": "cuda",
     "cambricon": "mlu",
     "ascend": "npu",
     "metax": "cuda",
     "moore": "cuda",
+    "iluvatar": "cuda",
+    "kunlun": "cuda",
+    "hygon": "cuda",
 }
 
 
