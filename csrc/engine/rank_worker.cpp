@@ -1,4 +1,7 @@
 #include "rank_worker.hpp"
+
+#include "distributed/infiniccl_adapter.hpp"
+
 #include "../models/model_factory.hpp"
 #include "infinicore/ops.hpp"
 #include <spdlog/spdlog.h>
@@ -426,6 +429,8 @@ void RankWorker::thread_loop() {
                         }
 
                         // Random sampling (rank 0 only)
+                        infinicore::Tensor output_ids;
+                        auto n_req = local_args.input_offsets.value()->size(0) - 1;
                         if (rank_info_.tp_rank == 0) {
                             auto temperature{local_args.temperature};
                             auto top_p{local_args.top_p};
@@ -436,10 +441,9 @@ void RankWorker::thread_loop() {
                             const auto &total_len{logits_shape[1]};
                             const auto &batch_size{logits_shape[0]};
 
-                            auto n_req = local_args.input_offsets.value()->size(0) - 1;
                             int32_t *input_offsets = (int32_t *)local_args.input_offsets.value()->data();
 
-                            auto output_ids{infinicore::Tensor::empty({n_req}, infinicore::DataType::I64, rank_info_.device)};
+                            output_ids = infinicore::Tensor::empty({n_req}, infinicore::DataType::I64, rank_info_.device);
 
                             for (auto i{decltype(n_req)(0)}; i < n_req; ++i) {
                                 auto score{logits->view({batch_size * total_len, vocab_size})->narrow({{0, size_t(input_offsets[i + 1] - 1), 1}})->view({vocab_size})};
@@ -448,7 +452,22 @@ void RankWorker::thread_loop() {
                                 infinicore::op::random_sample_(
                                     out, score, random_val, top_p, top_k, temperature);
                             }
+                        }
 
+                        // In multi-process (standalone InfiniCCL) mode, ranks
+                        // other than 0 also need the sampled tokens to drive
+                        // their local generation loop: broadcast from rank 0.
+                        if (distributed::infiniccl_adapter::enabled() && rank_info_.tp_size > 1) {
+                            if (rank_info_.tp_rank != 0) {
+                                output_ids = infinicore::Tensor::empty({n_req}, infinicore::DataType::I64, rank_info_.device);
+                            }
+                            infinicore::context::syncStream();
+                            distributed::infiniccl_adapter::broadcast(
+                                output_ids->data(), n_req, infinicore::DataType::I64,
+                                /*root=*/0, rank_info_.comm);
+                        }
+
+                        if (output_ids) {
                             output_ids = output_ids->to(infinicore::Device::cpu());
 
                             infinicore::context::syncStream();

@@ -1,4 +1,5 @@
 #include "linear.hpp"
+#include "../../engine/distributed/infiniccl_adapter.hpp"
 #include "infinicore/ops.hpp"
 #include "infinicore/ops/distributed/allreduce.hpp"
 #include <optional>
@@ -88,7 +89,16 @@ infinicore::Tensor RowParallelLinear::forward(infinicore::Tensor &input) const {
     auto output = BaseLinear::forward(input);
 
     if ((tp_size_ > 1) && (communicator_ != nullptr)) {
-        infinicore::op::distributed::allreduce_(output, output, INFINICCL_SUM, communicator_);
+        if (engine::distributed::infiniccl_adapter::enabled()) {
+            // Standalone InfiniCCL (MPI) path. Its host-staged collectives run
+            // outside InfiniCore's stream, so drain pending device work first.
+            infinicore::context::syncStream();
+            engine::distributed::infiniccl_adapter::allreduce_sum(
+                output->data(), output->data(), output->numel(), output->dtype(),
+                communicator_);
+        } else {
+            infinicore::op::distributed::allreduce_(output, output, INFINICCL_SUM, communicator_);
+        }
     }
     return output;
 }

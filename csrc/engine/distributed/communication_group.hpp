@@ -42,12 +42,20 @@ public:
 
     int get_world_size() const;
 
+    // Ranks hosted by this process. All of them in the default single-process
+    // mode; exactly one (this process's MPI rank) in infiniccl_adapter mode.
+    std::vector<int> get_local_ranks() const;
+
     ~CommunicationGroup();
 
 protected:
     DistConfig dist_config_;
     infinicore::Device::Type device_type_;
     std::vector<infinicclComm_t> communicators_;
+
+    // Multi-process (MPI) mode driven by the standalone InfiniCCL library.
+    bool use_infiniccl_adapter_ = false;
+    int local_rank_ = 0;
 };
 
 } // namespace infinilm::engine::distributed

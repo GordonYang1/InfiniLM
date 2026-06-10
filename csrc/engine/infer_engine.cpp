@@ -44,11 +44,12 @@ InferEngine::InferEngine(
     if (kv_cache_dtype.has_value()) {
         this->model_config_->set_kv_quant_scheme(kv_cache_dtype.value());
     }
-    // Create one RankWorker per rank
-    int world_size = communication_group_.get_world_size();
-    barrier_ = std::make_unique<RankBarrier>((size_t)world_size);
-    workers_.reserve(world_size);
-    for (int r = 0; r < world_size; ++r) {
+    // Create one RankWorker per rank hosted by this process (all ranks in the
+    // default mode; only this process's MPI rank in infiniccl_adapter mode).
+    std::vector<int> local_ranks = communication_group_.get_local_ranks();
+    barrier_ = std::make_unique<RankBarrier>(local_ranks.size());
+    workers_.reserve(local_ranks.size());
+    for (int r : local_ranks) {
         workers_.emplace_back(std::make_unique<RankWorker>(
             infinilm_config,
             communication_group_.get_rank_info(r),
