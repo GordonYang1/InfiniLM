@@ -24,101 +24,6 @@ class SchedulerOutput:
         self.num_requests = len(scheduled_requests)
         self.is_prefill = is_prefill
 
-    def build_model_inputs(
-        self, temperature: float = 1.0, top_p: float = 0.8, top_k: int = 1
-    ):
-        """Construct model inputs for prefill or decode phase.
-
-        Prefill phase:
-            - input_ids: Flattened token list (excluding cached tokens)
-            - position_ids: Position IDs for new tokens in complete sequence
-            - past_kv_lengths: Number of cached tokens per request
-            - total_kv_lengths: Total tokens (cached + new) per request
-            - input_offsets: Start position of each request in flattened array
-            - block_tables: Padded block_table for each request
-            - slot_mapping: Token to slot mappings
-
-        Decode phase:
-            - input_ids: Only last generated token per request
-            - position_ids: Position of last token in complete sequence
-            - past_kv_lengths: Number of cached tokens per request
-            - total_kv_lengths: Total sequence length per request
-            - input_offsets: Offsets for each request
-            - block_tables: Padded block_table for each request
-            - slot_mapping: Single slot per request
-        """
-        if not self.scheduled_requests:
-            raise RuntimeError(
-                "build_model_inputs called with empty scheduled_requests"
-            )
-
-        tokens = []
-        seq_lens = []
-        seq_offsets = [0]
-        block_tables = []
-        slot_mapping = []
-        cached_lens = []
-        position_ids = []
-
-        max_block_table_len = max(
-            len(req.block_table) for req in self.scheduled_requests
-        )
-        current_offset = 0
-
-        for req in self.scheduled_requests:
-            num_cached = req.num_cached_tokens
-            if self.is_prefill:
-                # Prefill phase
-                req_tokens = req.get_input_tokens()
-                tokens_to_compute = req_tokens[num_cached:]
-                tokens.extend(tokens_to_compute)
-
-                seq_len = len(tokens_to_compute)
-                seq_lens.append(len(req_tokens))
-
-                current_offset += seq_len
-                seq_offsets.append(current_offset)
-
-                slot_mapping.extend(req.slot_mapping)
-                cached_lens.append(num_cached)
-                position_ids.extend(range(num_cached, num_cached + seq_len))
-
-            else:
-                # Decode phase
-                last_token = req.generated_token_ids[-1]
-                tokens.append(last_token)
-                seq_lens.append(req.get_total_length())
-
-                current_offset += 1
-                seq_offsets.append(current_offset)
-
-                slot_mapping.extend(req.slot_mapping)
-                cached_lens.append(num_cached)
-                position_ids.append(req.get_total_length() - 1)
-
-            # Pad block_table to same length
-            padded_block_table = req.block_table + [-1] * (
-                max_block_table_len - len(req.block_table)
-            )
-            block_tables.append(padded_block_table)
-            cu_seqlens = [0]
-            for l in seq_lens:
-                cu_seqlens.append(cu_seqlens[-1] + l)
-
-        return {
-            "input_ids": [tokens],
-            "position_ids": position_ids,
-            "past_kv_lengths": cached_lens,
-            "total_kv_lengths": seq_lens,
-            "input_offsets": seq_offsets,
-            "cu_seqlens": cu_seqlens,
-            "block_tables": block_tables,
-            "slot_mapping": slot_mapping,
-            "temperature": temperature,
-            "top_k": top_k,
-            "top_p": top_p,
-        }
-
 
 class Scheduler:
     """Request scheduler with integrated BlockManager for KV cache management.
@@ -181,7 +86,9 @@ class Scheduler:
 
             # Allocate blocks with automatic prefix caching support
             req.block_table, req.slot_mapping, req.num_cached_tokens = (
-                self.cache_manager.allocate_blocks(req_tokens, req.block_table)
+                self.cache_manager.allocate_blocks(
+                    req_tokens, req.block_table, req.get_mm_token_index_mappings()
+                )
             )
 
             req.num_blocks = len(req.block_table)

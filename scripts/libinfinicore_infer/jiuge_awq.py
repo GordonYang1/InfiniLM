@@ -103,7 +103,7 @@ class JiugeAWQModel(BaseModel):
             c_void_p,
         ]
 
-        lib.loadModelWeight.argtypes = [
+        lib.JiugeAWQLoadWeight.argtypes = [
             POINTER(ModelWeightsCStruct),
             c_char_p,
             c_void_p,
@@ -129,7 +129,7 @@ class JiugeAWQModel(BaseModel):
         self.lib.dropKVCache(kv_cache)
 
     def load_weight(self, weights, name, data):
-        self.lib.loadModelWeight(weights, name.encode("utf-8"), data)
+        self.lib.JiugeAWQLoadWeight(weights, name.encode("utf-8"), data)
 
     def infer_batch(
         self,

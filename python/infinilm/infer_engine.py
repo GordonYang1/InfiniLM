@@ -3,11 +3,39 @@ from dataclasses import dataclass
 
 import infinicore
 
-from infinilm.auto_config import AutoConfig
 from infinilm.cache import StaticKVCacheConfig, PagedKVCacheConfig
 from infinilm.distributed import DistConfig
 from infinilm.lib import _infinilm
 
+from .modeling_utils import parse_dtype
+from .exception_utils import handle_oom_and_exit
+import json
+import os
+
+
+def read_hf_config(model_path):
+    config_path = os.path.join(model_path, "config.json")
+    with open(config_path, "r") as f:
+        config_dict = json.load(f)
+
+    if "model_type" not in config_dict:
+        raise ValueError(
+            f"`model_type` is not specified in the config file `{config_path}`."
+        )
+    return config_dict
+
+# config.json (required) defines model architecture, while generation_config.json
+# (optional) defines generation behavior. They are kept as separate readers
+# because: 1) config.json must exist and requires model_type validation,
+# whereas generation_config.json may not exist; 2) keeping them separate
+# preserves clear semantics and avoids a one-size-fits-all function with
+# multiple conditional parameters.
+def read_hf_generation_config(model_path):
+    gen_config_path = os.path.join(model_path, "generation_config.json")
+    if os.path.exists(gen_config_path):
+        with open(gen_config_path, "r") as f:
+            return json.load(f)
+    return {}
 
 @dataclass
 class GenerationConfig:
@@ -30,23 +58,65 @@ class InferEngine(_infinilm.InferEngine):
         cache_config=None,
         enable_graph_compiling=False,
         attention_backend="default",
+        kv_cache_dtype=None,
     ):
-        self.config = AutoConfig.from_pretrained(model_path)
+        self.hf_config = read_hf_config(model_path)
+        self.hf_generation_config = read_hf_generation_config(model_path)
 
         if device is None:
             device = infinicore.device()
 
+        hf_config_str = json.dumps(self.hf_config)
         super().__init__(
-            model_path,
+            hf_config_str,
             distributed_config._underlying,
             device._underlying.type,
             cache_config,
             enable_graph_compiling,
             attention_backend,
+            (
+                parse_dtype(kv_cache_dtype)._underlying
+                if kv_cache_dtype is not None
+                else None
+            ),
         )
         self.use_cache = False
 
         self.enable_paged_attn = isinstance(cache_config, PagedKVCacheConfig)
+
+    @property
+    def dtype(self):
+        torch_dtype = self.hf_config.get("torch_dtype")
+        if torch_dtype is None:
+            torch_dtype = self.hf_config.get("dtype")
+        return parse_dtype(torch_dtype)
+
+    @property
+    def model_type(self):
+        return self.hf_config["model_type"]
+
+    @property
+    def eos_token_id(self):
+        # HuggingFace priority: generation_config.json > config.json
+        # HuggingFace's documented loading priority for generation parameters
+        # (see transformers/generation/utils.py, GenerationMixin.generate docstring):
+        #   1) from the `generation_config.json` model file, if it exists
+        #   2) from the model configuration (config.json)
+        #
+        # config.json may contain incomplete or outdated generation parameters
+        # because HuggingFace treats config.json as model architecture config
+        # and generation_config.json as generation behavior config. For example,
+        # InternLM3's config.json has eos_token_id=2, while
+        # generation_config.json has eos_token_id=[2, 128131].
+        # Following this priority ensures we always get the authoritative value.
+        eos_token_id = (
+            self.hf_generation_config.get("eos_token_id")
+            or self.hf_config.get("eos_token_id")
+            or []
+        )
+        if isinstance(eos_token_id, int):
+            eos_token_id = [eos_token_id]
+        return eos_token_id
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
@@ -62,55 +132,88 @@ class InferEngine(_infinilm.InferEngine):
         cu_seqlens=None,
         block_tables=None,
         slot_mapping=None,
+        pixel_values=None,
+        image_bound=None,
+        tgt_sizes=None,
+        image_req_ids=None,
         temperature=None,
         top_k=None,
         top_p=None,
     ):
-        # TODO: Remove `_underlying` and simplify the corresponding code.
-        input_ids = input_ids._underlying if input_ids is not None else None
-        position_ids = position_ids._underlying if position_ids is not None else None
-        past_kv_lengths = (
-            past_kv_lengths._underlying if past_kv_lengths is not None else None
-        )
-        total_kv_lengths = (
-            total_kv_lengths._underlying if past_kv_lengths is not None else None
-        )
-        input_offsets = input_offsets._underlying if input_offsets is not None else None
-        block_tables = block_tables._underlying if block_tables is not None else None
-        cu_seqlens = cu_seqlens._underlying if cu_seqlens is not None else None
-        slot_mapping = slot_mapping._underlying if slot_mapping is not None else None
-
-        return infinicore.Tensor(
-            super()
-            .forward(
-                super().Input(
-                    input_ids,
-                    position_ids=position_ids,
-                    past_sequence_lengths=past_kv_lengths,
-                    total_sequence_lengths=total_kv_lengths,
-                    input_offsets=input_offsets,
-                    cu_seqlens=cu_seqlens,
-                    block_tables=block_tables,
-                    slot_mapping=slot_mapping,
-                    temperature=temperature,
-                    top_k=top_k,
-                    top_p=top_p,
-                )
+        try:
+            # TODO: Remove `_underlying` and simplify the corresponding code.
+            input_ids = input_ids._underlying if input_ids is not None else None
+            position_ids = (
+                position_ids._underlying if position_ids is not None else None
             )
-            .output_ids
-        )
+            past_kv_lengths = (
+                past_kv_lengths._underlying if past_kv_lengths is not None else None
+            )
+            total_kv_lengths = (
+                total_kv_lengths._underlying if total_kv_lengths is not None else None
+            )
+            input_offsets = (
+                input_offsets._underlying if input_offsets is not None else None
+            )
+            block_tables = (
+                block_tables._underlying if block_tables is not None else None
+            )
+            cu_seqlens = cu_seqlens._underlying if cu_seqlens is not None else None
+            slot_mapping = (
+                slot_mapping._underlying if slot_mapping is not None else None
+            )
+
+            def convert_tensor_list(tensor_list_):
+                if tensor_list_ is None:
+                    return None
+                if not isinstance(tensor_list_, list):
+                    tensor_list_ = [tensor_list_]
+                if len(tensor_list_) == 0:
+                    return None
+                return [tensor._underlying for tensor in tensor_list_]
+
+            pixel_values = convert_tensor_list(pixel_values)
+            image_bound = convert_tensor_list(image_bound)
+            tgt_sizes = convert_tensor_list(tgt_sizes)
+
+            return infinicore.Tensor(
+                super()
+                .forward(
+                    super().Input(
+                        input_ids,
+                        position_ids=position_ids,
+                        past_sequence_lengths=past_kv_lengths,
+                        total_sequence_lengths=total_kv_lengths,
+                        input_offsets=input_offsets,
+                        cu_seqlens=cu_seqlens,
+                        block_tables=block_tables,
+                        slot_mapping=slot_mapping,
+                        pixel_values=pixel_values,
+                        image_bound=image_bound,
+                        tgt_sizes=tgt_sizes,
+                        image_req_ids=image_req_ids,
+                        temperature=temperature,
+                        top_k=top_k,
+                        top_p=top_p,
+                    )
+                )
+                .output_ids
+            )
+        except BaseException as e:
+            handle_oom_and_exit(e)
+            raise
 
     def generate(
         self,
         input_ids,
         generation_config,
         *,
+        pixel_values=None,
+        image_bound=None,
+        tgt_sizes=None,
         _measure_and_log_time=False,
     ):
-        if generation_config.eos_token_id is None:
-            eos_token_id = self.config.eos_token_id
-        else:
-            eos_token_id = generation_config.eos_token_id
+        eos_token_id = self.eos_token_id
 
         past_seq_len = 0
         output_ids = []
@@ -208,6 +311,7 @@ class InferEngine(_infinilm.InferEngine):
 
             output_id = self(
                 input_ids=input_ids,
+                pixel_values=pixel_values if iter == 0 else None,
                 position_ids=position_ids,
                 past_kv_lengths=past_kv_lengths,
                 total_kv_lengths=total_kv_lengths,
@@ -215,6 +319,8 @@ class InferEngine(_infinilm.InferEngine):
                 cu_seqlens=cu_seqlens,
                 block_tables=block_tables,
                 slot_mapping=slot_mapping,
+                image_bound=image_bound if iter == 0 else None,
+                tgt_sizes=tgt_sizes if iter == 0 else None,
                 temperature=generation_config.temperature,
                 top_k=generation_config.top_k,
                 top_p=generation_config.top_p,
@@ -263,8 +369,10 @@ class InferEngine(_infinilm.InferEngine):
         super().reset_cache(cache_config)
 
     def state_dict_keyname(self):
-        return super().state_dict()[0].keys()
+        return sorted({name for state_dict in super().state_dict() for name in state_dict.keys()})
 
     def load_state_dict(self, state_dict, strict=None):
-        for name, param in state_dict.items():
-            super().load_param(name, param._underlying)
+        super().load_params({name: param._underlying for name, param in state_dict.items()})
+
+    def process_weights_after_loading(self):
+        super().process_weights_after_loading()

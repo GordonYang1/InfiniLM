@@ -1,63 +1,24 @@
 #include "rank_worker.hpp"
 
+#include "../global_state/global_state.hpp"
 #include "../models/model_factory.hpp"
-
+#include "../models/models_registry.hpp"
 #include "infinicore/ops.hpp"
-
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace infinilm::engine {
 
-/**
- * @deprecated This function is deprecated and will be REMOVED in the next major release (v0.2.0).
- *
- * ⚠️ DEVELOPMENT POLICY:
- *   - NO new development or feature additions permitted on this interface
- *   - Only critical bug fixes (security/stability) allowed until removal
- *   - All new code MUST migrate to the polymorphic overload below
- *
- * Replacement: Use the polymorphic overload of this same function name with updated signature
- * Reason: Legacy signature lacks support for dynamic quantization modes.
- * Removal target: v0.2.0 (Q2 2026)
- */
-RankWorker::RankWorker(const InfinilmModel::Config &model_config,
-                       const distributed::RankInfo &rank_info,
-                       const cache::CacheConfig *cache_config,
-                       RankBarrier *barrier,
-                       bool enable_graph_compiling,
-                       backends::AttentionBackend attention_backend)
-    : legacy_model_config_(model_config),
-      rank_info_(rank_info),
-      attention_backend_(attention_backend),
-      enable_graph_compiling_(enable_graph_compiling),
-      job_cmd_(Command::INIT),
-      has_job_(false),
-      job_done_(false),
-      should_exit_(false),
-      init_done_(false),
-      rng_(std::random_device{}()),
-      barrier_(barrier) {
-    if (cache_config != nullptr) {
-        pending_cache_config_ = cache_config->unique_copy();
-    }
-    // start the thread
-    thread_ = std::thread(&RankWorker::thread_loop, this);
-
-    // Wait until the worker thread finishes initialization (model created)
-    std::unique_lock<std::mutex> lk(mutex_);
-    cv_.wait(lk, [&] { return init_done_; });
-}
-
 RankWorker::RankWorker(
-    std::shared_ptr<infinilm::config::ModelConfig> model_config,
+    std::shared_ptr<infinilm::global_state::InfinilmConfig> infinilm_config,
     const distributed::RankInfo &rank_info,
     const cache::CacheConfig *cache_config,
     RankBarrier *barrier,
     bool enable_graph_compiling,
     backends::AttentionBackend attention_backend)
-    : model_config_(model_config),
+    : infinilm_config_(infinilm_config),
+      model_config_(infinilm_config->model_config),
       rank_info_(rank_info),
       attention_backend_(attention_backend),
       enable_graph_compiling_(enable_graph_compiling),
@@ -124,6 +85,57 @@ void RankWorker::load_param(const std::string &name,
 
     if (should_exit_) {
         throw std::runtime_error("RankWorker stopped while loading parameter");
+    }
+}
+
+//------------------------------------------------------
+// load_params -- synchronous batch load
+//------------------------------------------------------
+void RankWorker::load_params(const std::unordered_map<std::string, infinicore::Tensor> &params) {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (should_exit_) {
+            throw std::runtime_error("RankWorker is closing; cannot load_params");
+        }
+
+        pending_params_ = params;
+        job_cmd_ = Command::LOAD_BATCH;
+        has_job_ = true;
+        job_done_ = false;
+    }
+    cv_.notify_all();
+
+    std::unique_lock<std::mutex> lk(mutex_);
+    cv_.wait(lk, [&] { return job_done_ || should_exit_; });
+
+    if (should_exit_) {
+        throw std::runtime_error("RankWorker stopped while loading parameters");
+    }
+}
+
+//------------------------------------------------------
+// process_weights_after_loading -- asynchronous
+//------------------------------------------------------
+void RankWorker::process_weights_after_loading() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        // If the worker is stopping, don't submit new jobs.
+        if (should_exit_) {
+            throw std::runtime_error("RankWorker is closing; cannot process_weights_after_loading");
+        }
+
+        job_cmd_ = Command::PREPROCESS;
+        has_job_ = true;
+        job_done_ = false;
+    }
+    cv_.notify_all();
+
+    // Wait for job completion
+    std::unique_lock<std::mutex> lk(mutex_);
+    cv_.wait(lk, [&] { return job_done_ || should_exit_; });
+
+    if (should_exit_) {
+        throw std::runtime_error("RankWorker stopped while processing weights");
     }
 }
 
@@ -236,20 +248,31 @@ void RankWorker::thread_loop() {
             // Initialize device & model outside of holding the main mutex to avoid blocking callers.
             infinicore::context::setDevice(rank_info_.device);
 
-            // Create model using factory (may be expensive)
-            if (model_config_ == nullptr) {
-                model_ = InfinilmModelFactory::createModel(
-                    legacy_model_config_,
-                    rank_info_,
-                    pending_cache_config_ != nullptr ? pending_cache_config_.get() : nullptr,
-                    attention_backend_);
+            // Initialize global enviromnet.
+            infinilm::global_state::initialize_model_parallel(rank_info_);
+            infinilm::global_state::initialize_forward_context(forward_context_);
+            infinilm::global_state::initialize_infinilm_config(infinilm_config_);
 
-            } else {
+            // Create model using factory (may be expensive)
+            const std::string &model_type = model_config_->get<std::string>("model_type");
+            const auto &model_map = models::get_causal_lm_model_map();
+            auto it = model_map.find(model_type);
+            if (it != model_map.end()) {
                 model_ = InfinilmModelFactory::createModel(
                     model_config_,
-                    rank_info_,
-                    pending_cache_config_ != nullptr ? pending_cache_config_.get() : nullptr,
-                    attention_backend_);
+                    rank_info_.device,
+                    pending_cache_config_ != nullptr ? pending_cache_config_.get() : nullptr);
+            } else {
+                std::vector<std::string> classic_models = {"llama", "qwen2", "minicpm", "fm9g", "fm9g7b"};
+                if ((std::find(classic_models.begin(), classic_models.end(), model_type) != classic_models.end())) {
+                    model_ = InfinilmModelFactory::createModel(
+                        model_config_,
+                        rank_info_,
+                        pending_cache_config_ != nullptr ? pending_cache_config_.get() : nullptr,
+                        attention_backend_);
+                } else {
+                    throw std::runtime_error("RankWorker::thread_loop(): Unsupported model config type: " + model_type);
+                }
             }
 
             if (!model_) {
@@ -268,6 +291,7 @@ void RankWorker::thread_loop() {
             Command local_cmd = Command::INIT;
             std::string local_param_name;
             infinicore::Tensor local_param;
+            std::unordered_map<std::string, infinicore::Tensor> local_params;
             Input local_args;
             std::unique_ptr<cache::CacheConfig> local_cache_config;
 
@@ -285,6 +309,11 @@ void RankWorker::thread_loop() {
                 if (local_cmd == Command::LOAD) {
                     local_param_name = pending_param_name_;
                     local_param = pending_param_;
+                } else if (local_cmd == Command::LOAD_BATCH) {
+                    local_params = std::move(pending_params_);
+                    pending_params_.clear();
+                } else if (local_cmd == Command::PREPROCESS) {
+
                 } else if (local_cmd == Command::RUN) {
                     local_args = pending_args_;
                 } else if (local_cmd == Command::RESET_CACHE) {
@@ -319,6 +348,48 @@ void RankWorker::thread_loop() {
                 }
                 cv_.notify_all();
 
+            } else if (local_cmd == Command::LOAD_BATCH) {
+                try {
+                    model_->load_parameters_no_sync(local_params);
+                    infinicore::context::syncStream();
+                } catch (const std::exception &e) {
+                    {
+                        std::lock_guard<std::mutex> lk(mutex_);
+                        should_exit_ = true;
+                        job_done_ = true;
+                    }
+                    cv_.notify_all();
+                    spdlog::error("[{}] exception during load_parameters_: {}\n", info(), e.what());
+                    break;
+                }
+
+                {
+                    std::lock_guard<std::mutex> lk(mutex_);
+                    job_done_ = true;
+                }
+                cv_.notify_all();
+
+            } else if (local_cmd == Command::PREPROCESS) {
+                // Handle preprocess command
+                try {
+                    model_->process_weights_after_loading();
+                } catch (const std::exception &e) {
+                    {
+                        std::lock_guard<std::mutex> lk(mutex_);
+                        should_exit_ = true;
+                        job_done_ = true;
+                    }
+                    cv_.notify_all();
+                    spdlog::error("[{}] exception during process_weights_after_loading_: {}\n", info(), e.what());
+                    break;
+                }
+
+                // signal completion
+                {
+                    std::lock_guard<std::mutex> lk(mutex_);
+                    job_done_ = true;
+                }
+                cv_.notify_all();
             } else if (local_cmd == Command::RUN) {
                 try {
                     {
@@ -431,7 +502,6 @@ void RankWorker::thread_loop() {
                 // Shouldn't reach here (no-op)
             }
         } // while
-
         // Some clean up should be done before exiting the thread
         compiler_.reset();
     } catch (const std::exception &e) {

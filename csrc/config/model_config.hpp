@@ -1,10 +1,13 @@
 #pragma once
 
+#include "../utils.hpp"
 #include "infinicore/nn/rope.hpp"
 #include "infinicore/ops.hpp"
 #include "quant_config.hpp"
 #include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
 
 namespace infinilm::config {
 class ModelConfig {
@@ -13,9 +16,12 @@ class ModelConfig {
     // and passed through the InferEngine during inference.
 public:
     ModelConfig() = default;
-    // Not Implemented
-    // ModelConfig(const nlohmann::json &json) : config_json(json) {};
+    ModelConfig(const nlohmann::json &json);
     ModelConfig(const std::string &path);
+
+    nlohmann::json &get_config_json() {
+        return config_json;
+    }
 
     // Template Function to get a value by key with type safety
     template <typename T>
@@ -52,20 +58,65 @@ public:
         return get<size_t>("hidden_size") / get<size_t>("num_attention_heads");
     }
 
+    // Compute the actual rotary dimension based on partial rotation factor
+    size_t get_rotary_dim() const;
+
     QuantConfig get_quant_config() const {
         return quant_config;
     }
 
-    std::shared_ptr<infinicore::quantization::BaseQuantization> get_quantization_method() const {
+    std::shared_ptr<infinilm::quantization::BaseQuantization> get_quantization_method() const {
         return quant_config.get_quantization_method();
     }
 
     infinicore::DataType get_dtype() const;
-    infinicore::quantization::QuantScheme get_quant_scheme() const;
-    std::shared_ptr<infinicore::nn::RoPE::ScalingConfig> get_rope_scaling() const;
+    infinilm::quantization::QuantScheme get_quant_scheme() const;
+
+    void set_kv_quant_scheme(infinicore::DataType kv_cache_dtype) {
+        this->quant_config.set_kv_quant_scheme(kv_cache_dtype);
+    }
+    infinilm::quantization::KVQuantAlgo get_kv_quant_scheme() const {
+        return quant_config.get_kv_quant_scheme();
+    }
+    infinicore::DataType get_kv_cache_dtype() const {
+        if (this->quant_config.get_kv_cache_dtype().has_value()) {
+            return this->quant_config.get_kv_cache_dtype().value();
+        } else {
+            return this->get_dtype();
+        }
+    }
+
+    // Get reference to JSON value (non-const)
+    nlohmann::json &get_ref(const std::string &key) {
+        if (!config_json.contains(key)) {
+            throw std::out_of_range("Key '" + key + "' not found in config.");
+        }
+        return config_json.at(key);
+    }
+
+    // Get const reference to JSON value
+    const nlohmann::json &get_ref(const std::string &key) const {
+        if (!config_json.contains(key)) {
+            throw std::out_of_range("Key '" + key + "' not found in config.");
+        }
+        return config_json.at(key);
+    }
+
+    // Stream output operator
+    friend std::ostream &operator<<(std::ostream &os, const ModelConfig &config);
+
+    infinicore::nn::RoPE::Algo get_rope_algo() const {
+        return rope_algo_;
+    }
+
+    void set_rope_algo(infinicore::nn::RoPE::Algo algo) {
+        rope_algo_ = algo;
+    }
 
 private:
     nlohmann::json config_json;
     QuantConfig quant_config;
+
+    infinicore::nn::RoPE::Algo rope_algo_ = infinicore::nn::RoPE::Algo::GPT_NEOX;
 };
 } // namespace infinilm::config

@@ -7,70 +7,9 @@ import argparse
 import sys
 import time
 import os
+from infinilm.base_config import BaseConfig
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../python"))
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description="run Llama args")
-
-    parser.add_argument(
-        "--cpu",
-        action="store_true",
-        help="Run cpu test",
-    )
-    parser.add_argument(
-        "--nvidia",
-        action="store_true",
-        help="Run nvidia test",
-    )
-    parser.add_argument(
-        "--metax",
-        action="store_true",
-        help="Run metax test",
-    )
-    parser.add_argument(
-        "--moore",
-        action="store_true",
-        help="Run moore test",
-    )
-    parser.add_argument(
-        "--iluvatar",
-        action="store_true",
-        help="Run iluvatar test",
-    )
-    parser.add_argument(
-        "--model_path",
-        type=str,
-        required=True,
-        help="model_path",
-    )
-    parser.add_argument(
-        "--max_new_tokens",
-        type=int,
-        default=100,
-        help="max_new_tokens",
-    )
-    parser.add_argument(
-        "--backend",
-        type=str,
-        default="python",
-        help="python or cpp model",
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="number of prompts in a batch",
-    )
-    parser.add_argument(
-        "--prompt",
-        type=str,
-        default="How are you",
-        help="input prompt",
-    )
-
-    return parser.parse_args()
 
 
 def test(
@@ -104,7 +43,7 @@ def test(
     # ---------------------------------------------------------------------------- #
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
-    if "llama" == model.config.model_type:
+    if "llama" == model.model_type:
         backend = getattr(tokenizer, "backend_tokenizer", None)
         target = getattr(backend, "_tokenizer", backend)
         norm = getattr(target, "normalizer", None)
@@ -122,7 +61,7 @@ def test(
                 ]
             )
     else:
-        raise ValueError(f"Unsupported model type: {model.config.model_type}")
+        raise ValueError(f"Unsupported model type: {model.model_type}")
 
     # ---------------------------------------------------------------------------- #
     #                        token编码
@@ -163,32 +102,15 @@ def test(
 
 
 if __name__ == "__main__":
-    args = get_args()
-    print(args)
+    cfg = BaseConfig()
 
-    # Parse command line arguments
-    device_str = "cpu"
-    if args.cpu:
-        device_str = "cpu"
-    elif args.nvidia:
-        device_str = "cuda"
-    elif args.metax:
-        device_str = "cuda"
-    elif args.moore:
-        device_str = "musa"
-    elif args.iluvatar:
-        device_str = "cuda"
-    else:
-        print(
-            "Usage:  python examples/llama.py [--cpu | --nvidia | --metax | --moore | --iluvatar] --model_path=<path/to/model_dir>\n"
-            "such as, python examples/llama.py --nvidia --model_path=~/TinyLlama-1.1B-Chat-v1.0"
-        )
-        sys.exit(1)
-    prompts = [args.prompt for _ in range(args.batch_size)]
+    device_str = cfg.get_device_str(cfg.device)
 
-    model_path = args.model_path
-    max_new_tokens = args.max_new_tokens
-    backend = args.backend
+    prompts = [cfg.prompt for _ in range(cfg.batch_size)]
+
+    model_path = cfg.model
+    max_new_tokens = cfg.max_new_tokens
+    backend = cfg.backend
 
     if backend != "python":
         raise ValueError(f"Unsupported backend: {backend}.")

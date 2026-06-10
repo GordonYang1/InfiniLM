@@ -3,6 +3,7 @@
 #include "../backends/attention_backends.hpp"
 #include "../cache/cache.hpp"
 #include "../config/model_config.hpp"
+#include "../global_state/global_state.hpp"
 #include "../models/model_factory.hpp"
 #include "compiler/general_compiler.hpp"
 #include "distributed/distributed.hpp"
@@ -14,14 +15,19 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace infinilm::engine {
+
+using ForwardContext = infinilm::global_state::ForwardContext;
 
 class RankWorker {
     enum class Command {
         INIT,
         LOAD,
+        LOAD_BATCH,
+        PREPROCESS,
         RUN,
         RESET_CACHE,
         COMPILE,
@@ -46,6 +52,14 @@ public:
         std::optional<infinicore::Tensor> block_tables;
         /// Slot ids for each token `[seq]`. Used for paged cache.
         std::optional<infinicore::Tensor> slot_mapping;
+        /// Image pixel values for multi-modal models.
+        std::optional<std::vector<infinicore::Tensor>> pixel_values;
+        /// Image placeholder bounds for MiniCPM-V style replacement.
+        std::optional<std::vector<infinicore::Tensor>> image_bound;
+        /// Target patch sizes for each image (MiniCPM-V).
+        std::optional<std::vector<infinicore::Tensor>> tgt_sizes;
+        /// req_id for each pixel_values among a batch
+        std::optional<std::vector<size_t>> image_req_ids;
 
         float temperature{1};
 
@@ -60,14 +74,7 @@ public:
         infinicore::Tensor output_ids;
     };
 
-    RankWorker(const InfinilmModel::Config &model_config,
-               const distributed::RankInfo &rank_info,
-               const cache::CacheConfig *cache_config,
-               RankBarrier *barrier,
-               bool enable_graph_compiling,
-               backends::AttentionBackend attention_backend);
-
-    RankWorker(std::shared_ptr<infinilm::config::ModelConfig> model_config,
+    RankWorker(std::shared_ptr<infinilm::global_state::InfinilmConfig> infinilm_config,
                const distributed::RankInfo &rank_info,
                const cache::CacheConfig *cache_config,
                RankBarrier *barrier,
@@ -77,6 +84,10 @@ public:
     // Submit a parameter load job and wait until the load completes on the worker thread.
     void load_param(const std::string &name,
                     const infinicore::Tensor &param);
+
+    void load_params(const std::unordered_map<std::string, infinicore::Tensor> &params);
+
+    void process_weights_after_loading();
 
     // return the parameters (i.e. weights and biases).
     std::unordered_map<std::string, infinicore::nn::Parameter> state_dict();
@@ -106,9 +117,10 @@ private:
 
 private:
     // Worker properties
-    const InfinilmModel::Config &legacy_model_config_ = InfinilmModel::Config();
+    std::shared_ptr<infinilm::global_state::InfinilmConfig> infinilm_config_;
     std::shared_ptr<infinilm::config::ModelConfig> model_config_;
-    distributed::RankInfo rank_info_;
+    engine::distributed::RankInfo rank_info_;
+    ForwardContext forward_context_;
     std::shared_ptr<InfinilmModel> model_;
     std::shared_ptr<cache::Cache> cache_;
 
@@ -131,6 +143,7 @@ private:
     // Task payloads (protected by mutex)
     std::string pending_param_name_;
     infinicore::Tensor pending_param_;
+    std::unordered_map<std::string, infinicore::Tensor> pending_params_;
     Input pending_args_;
     std::unique_ptr<cache::CacheConfig> pending_cache_config_;
 

@@ -1,11 +1,15 @@
 import json
 import os
-
+import logging
 from infinilm.models.llama.configuration_llama import LlamaConfig
+
+logger = logging.getLogger(__name__)
 
 
 class AutoConfig:
     def from_pretrained(model_path):
+        logger.warning(f"The AutoConfig will be deprecated, please don't use it !")
+
         config_path = os.path.join(model_path, "config.json")
 
         if not os.path.exists(config_path):
@@ -25,11 +29,7 @@ class AutoConfig:
             config_dict["model_type"] == "qwen2" or config_dict["model_type"] == "qwen3"
         ):
             return LlamaConfig(**config_dict)
-        elif config_dict["model_type"] == "minicpm":
-            return LlamaConfig(**config_dict)
-        elif config_dict["model_type"] == "fm9g":
-            return LlamaConfig(**config_dict)
-        elif config_dict["model_type"] == "fm9g7b":
+        elif config_dict["model_type"] == ["minicpm", "fm9g", "fm9g7b"]:
             return LlamaConfig(**config_dict)
 
         raise ValueError(f"Unsupported model type `{config_dict['model_type']}`.")

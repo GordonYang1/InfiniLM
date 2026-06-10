@@ -30,51 +30,6 @@ namespace infinilm::engine {
 
 inline void bind_infer_engine(py::module &m) {
     py::class_<InferEngine, std::shared_ptr<InferEngine>> infer_engine(m, "InferEngine");
-    infer_engine
-        .def(py::init([](
-                          const InfinilmModel::Config &cfg,
-                          const distributed::DistConfig &dist,
-                          infinicore::Device::Type dev,
-                          std::shared_ptr<const infinilm::cache::CacheConfig> cache_cfg,
-                          bool enable_graph_compiling,
-                          const std::string &attention_backend) {
-                 return std::make_shared<InferEngine>(
-                     cfg,
-                     dist,
-                     dev,
-                     cache_cfg ? cache_cfg.get() : nullptr,
-                     enable_graph_compiling,
-                     infinilm::backends::parse_attention_backend(attention_backend));
-             }),
-             py::arg("config"),
-             py::arg("distributed_config") = distributed::DistConfig(),
-             py::arg("device_type") = infinicore::context::getDevice().getType(),
-             py::arg("cache_config") = py::none(),
-             py::arg("enable_graph_compiling") = false,
-             py::arg("attention_backend") = "default")
-        .def("load_param", &InferEngine::load_param,
-             py::arg("name"), py::arg("param"),
-             "Load a parameter tensor into all workers (each worker picks its shard)")
-        .def("state_dict", [](InferEngine &self) {
-            py::list state_dict_tp_all;
-            for (const auto &state_dict_tp : self.state_dict()) {
-                py::dict result;
-                for (const auto &[name, param] : state_dict_tp) {
-                    result[py::cast(name)] = infinicore::Tensor(param);
-                }
-                state_dict_tp_all.append(result);
-            }
-            return state_dict_tp_all;
-        })
-        .def(
-            "forward", [](InferEngine &self, const InferEngine::Input &input) -> InferEngine::Output { return self.forward(input); }, "Run inference on all ranks with arbitrary arguments")
-        .def(
-            "reset_cache", [](InferEngine &self, std::shared_ptr<const cache::CacheConfig> cfg) { self.reset_cache(cfg ? cfg.get() : nullptr); }, py::arg("cache_config") = py::none())
-        .def("get_cache_config", [](const InferEngine &self) -> std::shared_ptr<cache::CacheConfig> {
-            auto cfg = self.get_cache_config();
-            return cfg ? std::shared_ptr<cache::CacheConfig>(cfg->unique_copy()) : nullptr;
-        })
-        .def("__repr__", [](const InferEngine &self) { return "<InferEngine: " + std::string(self.get_dist_config()) + ">"; });
 
     infer_engine
         .def(py::init([](
@@ -83,24 +38,30 @@ inline void bind_infer_engine(py::module &m) {
                           infinicore::Device::Type dev,
                           std::shared_ptr<const infinilm::cache::CacheConfig> cache_cfg,
                           bool enable_graph_compiling,
-                          const std::string &attention_backend) {
+                          const std::string &attention_backend,
+                          std::optional<infinicore::DataType> kv_cache_dtype) {
                  return std::make_shared<InferEngine>(
                      model_path,
                      dist,
                      dev,
                      cache_cfg ? cache_cfg.get() : nullptr,
                      enable_graph_compiling,
-                     infinilm::backends::parse_attention_backend(attention_backend));
+                     infinilm::backends::parse_attention_backend(attention_backend),
+                     kv_cache_dtype);
              }),
              py::arg("model_path") = "",
              py::arg("distributed_config") = distributed::DistConfig(),
              py::arg("device_type") = infinicore::context::getDevice().getType(),
              py::arg("cache_config") = py::none(),
              py::arg("enable_graph_compiling") = false,
-             py::arg("attention_backend") = "default")
+             py::arg("attention_backend") = "default",
+             py::arg("kv_cache_dtype") = py::none())
         .def("load_param", &InferEngine::load_param,
              py::arg("name"), py::arg("param"),
              "Load a parameter tensor into all workers (each worker picks its shard)")
+        .def("load_params", &InferEngine::load_params,
+             py::arg("params"),
+             "Load a batch of parameter tensors into all workers, syncing once per worker")
         .def("state_dict", [](InferEngine &self) {
             py::list state_dict_tp_all;
             for (const auto &state_dict_tp : self.state_dict()) {
@@ -112,13 +73,18 @@ inline void bind_infer_engine(py::module &m) {
             }
             return state_dict_tp_all;
         })
+        .def("process_weights_after_loading", &InferEngine::process_weights_after_loading, "Process the weights after loading on all workers (e.g., for quantization)")
         .def(
-            "forward", [](InferEngine &self, const InferEngine::Input &input) -> InferEngine::Output { return self.forward(input); }, "Run inference on all ranks with arbitrary arguments")
+            "forward", [](InferEngine &self, const InferEngine::Input &input) -> InferEngine::Output {
+                py::gil_scoped_release release;
+                return self.forward(input);
+            },
+            "Run inference on all ranks with arbitrary arguments")
         .def(
-            "reset_cache", [](InferEngine &self, std::shared_ptr<const cache::CacheConfig> cfg) { self.reset_cache(cfg ? cfg.get() : nullptr); }, py::arg("cache_config") = py::none())
-        .def("get_cache_config", [](const InferEngine &self) {
+            "reset_cache", [](InferEngine &self, std::shared_ptr<cache::CacheConfig> cfg) { self.reset_cache(cfg ? cfg.get() : nullptr); }, py::arg("cache_config") = py::none())
+        .def("get_cache_config", [](const InferEngine &self) -> std::shared_ptr<cache::CacheConfig> {
             auto cfg = self.get_cache_config();
-            return std::shared_ptr<cache::CacheConfig>(std::move(cfg->unique_copy())); })
+            return cfg ? std::shared_ptr<cache::CacheConfig>(cfg->unique_copy()) : nullptr; })
         .def("__repr__", [](const InferEngine &self) { return "<InferEngine: " + std::string(self.get_dist_config()) + ">"; });
 
     py::class_<InferEngine::Input>(infer_engine, "Input")
@@ -132,6 +98,10 @@ inline void bind_infer_engine(py::module &m) {
                          std::optional<infinicore::Tensor> cu_seqlens,
                          std::optional<infinicore::Tensor> block_tables,
                          std::optional<infinicore::Tensor> slot_mapping,
+                         std::optional<std::vector<infinicore::Tensor>> pixel_values,
+                         std::optional<std::vector<infinicore::Tensor>> image_bound,
+                         std::optional<std::vector<infinicore::Tensor>> tgt_sizes,
+                         std::optional<std::vector<size_t>> image_req_ids,
                          py::kwargs kwargs) {
                 InferEngine::Input input{
                     std::move(input_ids),
@@ -142,6 +112,10 @@ inline void bind_infer_engine(py::module &m) {
                     std::move(cu_seqlens),
                     std::move(block_tables),
                     std::move(slot_mapping),
+                    std::move(pixel_values),
+                    std::move(image_bound),
+                    std::move(tgt_sizes),
+                    std::move(image_req_ids),
                 };
 
                 // Explicit defaults
@@ -182,7 +156,11 @@ inline void bind_infer_engine(py::module &m) {
             py::arg("input_offsets") = std::nullopt,
             py::arg("cu_seqlens") = std::nullopt,
             py::arg("block_tables") = std::nullopt,
-            py::arg("slot_mapping") = std::nullopt)
+            py::arg("slot_mapping") = std::nullopt,
+            py::arg("pixel_values") = std::nullopt,
+            py::arg("image_bound") = std::nullopt,
+            py::arg("tgt_sizes") = std::nullopt,
+            py::arg("image_req_ids") = std::nullopt)
         .def_readwrite("input_ids", &InferEngine::Input::input_ids)
         .def_readwrite("position_ids", &InferEngine::Input::position_ids)
         .def_readwrite("past_sequence_lengths", &InferEngine::Input::past_sequence_lengths)
@@ -191,6 +169,10 @@ inline void bind_infer_engine(py::module &m) {
         .def_readwrite("cu_seqlens", &InferEngine::Input::cu_seqlens)
         .def_readwrite("block_tables", &InferEngine::Input::block_tables)
         .def_readwrite("slot_mapping", &InferEngine::Input::slot_mapping)
+        .def_readwrite("pixel_values", &InferEngine::Input::pixel_values)
+        .def_readwrite("image_bound", &InferEngine::Input::image_bound)
+        .def_readwrite("tgt_sizes", &InferEngine::Input::tgt_sizes)
+        .def_readwrite("image_req_ids", &InferEngine::Input::image_req_ids)
         .def_readwrite("temperature", &InferEngine::Input::temperature)
         .def_readwrite("top_k", &InferEngine::Input::top_k)
         .def_readwrite("top_p", &InferEngine::Input::top_p);

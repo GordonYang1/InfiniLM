@@ -1,12 +1,14 @@
 #pragma once
 
+#include "../backends/attention_backends.hpp"
 #include "../cache/cache.hpp"
+#include "../config/model_config.hpp"
+#include "../layers/linear/linear.hpp"
 #include "infinicore/nn/module.hpp"
-#include "nlohmann/json.hpp"
-
-#include <any>
+#include "infinicore/tensor.hpp"
 
 #include <optional>
+#include <vector>
 
 namespace infinilm {
 class InfinilmModel : public infinicore::nn::Module {
@@ -33,6 +35,15 @@ public:
         std::optional<infinicore::Tensor> block_tables;
         /// Slot ids for each token `[seq]`. Used for paged cache.
         std::optional<infinicore::Tensor> slot_mapping;
+        /// Image pixel values for multi-modal models.
+        /// Vector of tensors. Shape is model-specific (e.g. LLaVA: [batch, 3, H, W], MiniCPM-V: [n_patch, 3, filter_H, H * W / filter_H]).
+        std::optional<std::vector<infinicore::Tensor>> pixel_values;
+        /// Image placeholder bounds for MiniCPM-V style replacement.
+        /// Vector of tensors shape: [n_patch, 2].
+        std::optional<std::vector<infinicore::Tensor>> image_bound;
+        /// Target patch sizes for each image (MiniCPM-V).
+        /// Vector of tensors shape: [n_path, 2] if pre-flattened.
+        std::optional<std::vector<infinicore::Tensor>> tgt_sizes;
     };
 
     struct Output {
@@ -42,8 +53,23 @@ public:
 
     virtual ~InfinilmModel() = default;
     virtual Output forward(const Input &input) const = 0;
+    virtual void reset_cache(const cache::CacheConfig *cache_config);
+    virtual const cache::CacheConfig *get_cache_config() const {
+        return cache_config_.get();
+    }
 
-    virtual void reset_cache(const cache::CacheConfig *cache_config) = 0;
-    virtual const cache::CacheConfig *get_cache_config() const = 0;
+    void process_weights_after_loading();
+
+protected:
+    std::vector<infinicore::Tensor> default_allocate_kv_cache_tensors(
+        const cache::CacheConfig *cache_config,
+        const std::shared_ptr<infinilm::config::ModelConfig> &text_config,
+        const backends::AttentionBackend &attention_backend);
+
+    std::unique_ptr<cache::CacheConfig> cache_config_;
+    std::shared_ptr<infinilm::config::ModelConfig> model_config_;
+
+private:
+    static void process_weights_recursive_(infinicore::nn::Module *module);
 };
 } // namespace infinilm

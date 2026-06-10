@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-void createDeviceResource(DeviceResource *rsrc, const JiugeAWQMeta *meta,
+void createDeviceResource(AWQDeviceResource *rsrc, const JiugeAWQMeta *meta,
                           std::shared_ptr<JiugeAWQDeviceWeight> weights,
                           infiniDevice_t device, int idev,
                           int ndev, int dev_id,
@@ -21,7 +21,7 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeAWQMeta *meta,
 
     auto memory_pool = std::make_shared<MemoryPool>(128 * 1024 * 1024);
 
-    *rsrc = DeviceResource{
+    *rsrc = AWQDeviceResource{
         device,
         dev_id,
         handle,
@@ -33,7 +33,7 @@ void createDeviceResource(DeviceResource *rsrc, const JiugeAWQMeta *meta,
     RUN_INFINI(infinirtDeviceSynchronize());
 }
 
-void releaseDeviceResource(DeviceResource &res) {
+void releaseDeviceResource(AWQDeviceResource &res) {
     infinirtDeviceSynchronize();
     // Release individual Tensors
 
@@ -45,7 +45,7 @@ void releaseDeviceResource(DeviceResource &res) {
     res.comm = nullptr;
 }
 
-void inferDeviceBatch(const JiugeAWQMeta *meta, DeviceResource &rsrc,
+void inferDeviceBatch(const JiugeAWQMeta *meta, AWQDeviceResource &rsrc,
                       uint32_t idev, uint32_t ndev,
                       const uint32_t *tokens, uint32_t ntok,
                       const uint32_t *req_lens, uint32_t nreq, const uint32_t *req_pos,
@@ -132,13 +132,16 @@ void inferDeviceBatch(const JiugeAWQMeta *meta, DeviceResource &rsrc,
         // qkv_proj
         dequant_linear(q_buf, logits_out,
                        weight->w_attn_q[layer]->w, weight->w_attn_q[layer]->s, weight->w_attn_q[layer]->z,
-                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_q[layer] : nullptr);
+                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_q[layer] : nullptr,
+                       QuantType::AWQ);
         dequant_linear(k_buf, logits_out,
                        weight->w_attn_k[layer]->w, weight->w_attn_k[layer]->s, weight->w_attn_k[layer]->z,
-                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_k[layer] : nullptr);
+                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_k[layer] : nullptr,
+                       QuantType::AWQ);
         dequant_linear(v_buf, logits_out,
                        weight->w_attn_v[layer]->w, weight->w_attn_v[layer]->s, weight->w_attn_v[layer]->z,
-                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_v[layer] : nullptr);
+                       1.0, 0.0, nullptr, has_qkv_bias ? weight->b_attn_v[layer] : nullptr,
+                       QuantType::AWQ);
         // rope
         rope_v2(q_buf->view({ntok, nh, dh}), q_buf->view({ntok, nh, dh}), pos_ids_buf, weight->sin_table, weight->cos_table);
         rope_v2(k_buf->view({ntok, nkvh, dh}), k_buf->view({ntok, nkvh, dh}), pos_ids_buf, weight->sin_table, weight->cos_table);
@@ -172,8 +175,10 @@ void inferDeviceBatch(const JiugeAWQMeta *meta, DeviceResource &rsrc,
             token_offset += seq_len;
         }
         // o_proj
-        dequant_linear(logits_in, o_buf, weight->w_attn_out[layer]->w, weight->w_attn_out[layer]->s, weight->w_attn_out[layer]->z,
-                       1.0, 0.0, idev == 0 ? logits_in : nullptr, nullptr); // only rank 0 adds residual
+        dequant_linear(logits_in, o_buf,
+                       weight->w_attn_out[layer]->w, weight->w_attn_out[layer]->s, weight->w_attn_out[layer]->z,
+                       1.0, 0.0, idev == 0 ? logits_in : nullptr, nullptr,
+                       QuantType::AWQ);
         // All_reduce if distributed
         if (rsrc.comm != nullptr) {
             RUN_INFINI(infinicclAllReduce(
@@ -185,14 +190,17 @@ void inferDeviceBatch(const JiugeAWQMeta *meta, DeviceResource &rsrc,
         rmsnorm(logits_out, logits_in, weight->w_ffn_norm[layer], meta->epsilon);
         dequant_linear(gate_buf, logits_out,
                        weight->w_ffn_gate[layer]->w, weight->w_ffn_gate[layer]->s, weight->w_ffn_gate[layer]->z,
-                       1.0, 0.0, nullptr, nullptr);
+                       1.0, 0.0, nullptr, nullptr,
+                       QuantType::AWQ);
         dequant_linear(up_buf, logits_out,
                        weight->w_ffn_up[layer]->w, weight->w_ffn_up[layer]->s, weight->w_ffn_up[layer]->z,
-                       1.0, 0.0, nullptr, nullptr);
+                       1.0, 0.0, nullptr, nullptr,
+                       QuantType::AWQ);
         swiglu(gate_buf, up_buf, gate_buf);
         dequant_linear(logits_in, gate_buf,
                        weight->w_ffn_down[layer]->w, weight->w_ffn_down[layer]->s, weight->w_ffn_down[layer]->z,
-                       1.0, 0.0, idev == 0 ? logits_in : nullptr, nullptr); // only rank 0 adds residual
+                       1.0, 0.0, idev == 0 ? logits_in : nullptr, nullptr,
+                       QuantType::AWQ); // only rank 0 adds residual
         // All_reduce if distributed
         if (rsrc.comm != nullptr) {
             RUN_INFINI(infinicclAllReduce(
@@ -307,7 +315,7 @@ forwardBatchJiugeAWQ(struct JiugeAWQModel *model,
     }
 }
 
-void launchDevice(const JiugeAWQMeta *meta, std::shared_ptr<JiugeAWQDeviceWeight> weights, DeviceResource *rsrc, InferState &state, InferRequest &req,
+void launchDevice(const JiugeAWQMeta *meta, std::shared_ptr<JiugeAWQDeviceWeight> weights, AWQDeviceResource *rsrc, InferState &state, InferRequest &req,
                   infiniDevice_t device, int idev, int ndev, int dev_id, infinicclComm_t comm) {
     // Create Device Resource
     createDeviceResource(rsrc, meta, weights, device, idev, ndev, dev_id, comm);
@@ -353,7 +361,7 @@ JiugeAWQModel::JiugeAWQModel(const JiugeAWQMeta *meta, const ModelWeights *weigh
     device = weights->device();
     dev_ids = weights->devIds();
     int ndev = int(dev_ids.size());
-    dev_resources = std::vector<DeviceResource>(ndev);
+    dev_resources = std::vector<AWQDeviceResource>(ndev);
     states = std::vector<InferState>(ndev);
     threads.resize(ndev);
 

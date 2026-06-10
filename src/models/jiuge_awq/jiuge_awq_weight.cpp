@@ -126,3 +126,7 @@ createJiugeAWQWeights(const JiugeAWQMeta *meta,
     JiugeAWQWeights *weights = new JiugeAWQWeights(meta, device, std::vector<int>(dev_ids, dev_ids + ndev));
     return (struct ModelWeights *)weights;
 }
+
+__INFINI_C void JiugeAWQLoadWeight(struct ModelWeights *weights, const char *name, void *data) {
+    loadModelWeight(weights, name, data);
+}

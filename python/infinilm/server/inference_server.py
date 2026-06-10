@@ -12,7 +12,7 @@ import uvicorn
 import logging
 import os
 import asyncio
-
+from infinilm.base_config import BaseConfig
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -109,6 +109,7 @@ class InferenceServer:
         port: int = 8000,
         enable_graph: bool = False,
         attn_backend: str = "default",
+        ignore_eos: bool = False,
     ):
         """Initialize inference server.
 
@@ -150,6 +151,7 @@ class InferenceServer:
         self.port = port
         self.enable_graph = enable_graph
         self.attn_backend = attn_backend
+        self.ignore_eos = ignore_eos
 
         self.engine: AsyncLLMEngine = None
 
@@ -216,7 +218,8 @@ class InferenceServer:
                     data["messages"] = [{"role": "user", "content": data.get("prompt")}]
 
             # Normalize messages to handle multimodal content (list format)
-            data["messages"] = self._normalize_messages(data.get("messages", []))
+            # data["messages"] = self._normalize_messages(data.get("messages", []))
+            data["messages"] = data.get("messages", [])
 
             stream = data.get("stream", False)
             request_id = f"cmpl-{uuid.uuid4().hex}"
@@ -331,6 +334,7 @@ class InferenceServer:
             top_k=int(pick("top_k", self.top_k)),
             max_tokens=int(max_tokens) if max_tokens is not None else None,
             stop=stop,
+            ignore_eos=self.ignore_eos,
         )
 
     async def _stream_chat(self, request_id: str, data: dict, http_request: Request):
@@ -382,7 +386,11 @@ class InferenceServer:
                 # Skip EOS token text for OpenAI API compatibility
                 # Check if this token is an EOS token by comparing token_id with eos_token_ids
                 eos_token_ids = self.engine.engine.eos_token_ids
-                is_eos_token = eos_token_ids and token_output.token_id in eos_token_ids
+                is_eos_token = (
+                    not sampling_params.ignore_eos
+                    and eos_token_ids
+                    and token_output.token_id in eos_token_ids
+                )
 
                 if not is_eos_token and token_output.token_text:
                     # Send token
@@ -543,151 +551,30 @@ def setup_logging(log_level: str = "INFO"):
     )
 
 
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="InfiniLM Inference Server")
-    parser.add_argument(
-        "--model_path", type=str, required=True, help="Path to model directory"
-    )
-    parser.add_argument("--tp", type=int, default=1, help="Tensor parallelism degree")
-    parser.add_argument(
-        "--cache_type",
-        type=str,
-        default="paged",
-        choices=["paged", "static"],
-        help="Cache type: paged or static",
-    )
-    parser.add_argument(
-        "--max_tokens",
-        type=int,
-        default=512,
-        help="Maximum number of tokens to generate",
-    )
-    parser.add_argument(
-        "--max_batch_size",
-        type=int,
-        default=8,
-        help="Maximum batch size (paged cache only)",
-    )
-    parser.add_argument(
-        "--num_blocks",
-        type=int,
-        default=512,
-        help="Number of blocks for KV cache (paged cache only)",
-    )
-    parser.add_argument(
-        "--block_size",
-        type=int,
-        default=256,
-        help="Block size for KV cache (paged cache only)",
-    )
-    parser.add_argument(
-        "--max_cache_len",
-        type=int,
-        default=4096,
-        help="Maximum sequence length (static cache only)",
-    )
-    parser.add_argument(
-        "--dtype",
-        type=str,
-        default="float16",
-        choices=["float32", "float16", "bfloat16"],
-        help="Data type",
-    )
-    parser.add_argument(
-        "--temperature", type=float, default=1.0, help="Sampling temperature"
-    )
-    parser.add_argument(
-        "--top_p", type=float, default=0.8, help="Top-p sampling parameter"
-    )
-    parser.add_argument("--top_k", type=int, default=1, help="Top-k sampling parameter")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host")
-    parser.add_argument("--port", type=int, default=8000, help="Server port")
-    parser.add_argument("--cpu", action="store_true", help="Use CPU")
-    parser.add_argument("--nvidia", action="store_true", help="Use NVIDIA GPU")
-    parser.add_argument("--qy", action="store_true", help="Use QY GPU")
-    parser.add_argument("--metax", action="store_true", help="Use MetaX device")
-    parser.add_argument("--moore", action="store_true", help="Use Moore device")
-    parser.add_argument("--iluvatar", action="store_true", help="Use Iluvatar device")
-    parser.add_argument("--cambricon", action="store_true", help="Use Cambricon device")
-    parser.add_argument("--ali", action="store_true", help="Use Ali PPU device")
-    parser.add_argument("--hygon", action="store_true", help="Use Hygon DCU device")
-    parser.add_argument(
-        "--enable-graph",
-        action="store_true",
-        help="Enable graph compiling",
-    )
-    parser.add_argument(
-        "--attn",
-        type=str,
-        default="default",
-        choices=["default", "flash-attn"],
-        help="Attention backend to use: 'default' or 'flash-attn'",
-    )
-    parser.add_argument(
-        "--log_level",
-        type=str,
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging level",
-    )
-
-    return parser.parse_args()
-
-
 def main():
-    args = parse_args()
-
-    setup_logging(args.log_level)
-
-    if args.cpu:
-        device = "cpu"
-    elif args.nvidia:
-        device = "cuda"
-    elif args.qy:
-        device = "cuda"
-    elif args.metax:
-        device = "cuda"
-    elif args.moore:
-        device = "musa"
-    elif args.iluvatar:
-        device = "cuda"
-    elif args.cambricon:
-        device = "mlu"
-    elif args.ali:
-        device = "cuda"
-    elif args.hygon:
-        device = "cuda"
-    else:
-        print(
-            "Usage: python infinilm.server.inference_server [--cpu | --nvidia | --qy | --metax | --moore | --iluvatar | --cambricon | --ali | --hygon] "
-            "--model_path=<path/to/model_dir> --max_tokens=MAX_TOKENS --max_batch_size=MAX_BATCH_SIZE"
-            "\n"
-            "Example: python infinilm.server.inference_server --nvidia --model_path=/data/shared/models/9G7B_MHA/ "
-            "--max_tokens=100 --max_batch_size=32 --tp=1 --temperature=1.0 --top_p=0.8 --top_k=1"
-            "\n"
-            "Optional: --enable-paged-attn --enable-graph --attn=default"
-        )
-        sys.exit(1)
+    cfg = BaseConfig()
+    setup_logging(cfg.log_level)
+    device = cfg.get_device_str(cfg.device)
 
     server = InferenceServer(
-        model_path=args.model_path,
+        model_path=cfg.model,
         device=device,
-        dtype=args.dtype,
-        tensor_parallel_size=args.tp,
-        cache_type=args.cache_type,
-        max_tokens=args.max_tokens,
-        max_batch_size=args.max_batch_size,
-        num_blocks=args.num_blocks,
-        block_size=args.block_size,
-        max_cache_len=args.max_cache_len,
-        temperature=args.temperature,
-        top_p=args.top_p,
-        top_k=args.top_k,
-        host=args.host,
-        port=args.port,
-        enable_graph=args.enable_graph,
-        attn_backend=args.attn,
+        dtype=cfg.dtype,
+        tensor_parallel_size=cfg.tp,
+        cache_type="paged" if cfg.enable_paged_attn else "static",
+        max_tokens=cfg.max_new_tokens,
+        max_batch_size=cfg.max_batch_size,
+        num_blocks=cfg.num_blocks,
+        block_size=cfg.block_size,
+        max_cache_len=cfg.max_cache_len,
+        temperature=cfg.temperature,
+        top_p=cfg.top_p,
+        top_k=cfg.top_k,
+        host=cfg.host,
+        port=cfg.port,
+        enable_graph=cfg.enable_graph,
+        attn_backend=cfg.attn,
+        ignore_eos=cfg.ignore_eos,
     )
     server.start()
 
