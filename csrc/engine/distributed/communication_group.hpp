@@ -42,8 +42,8 @@ public:
 
     int get_world_size() const;
 
-    // Ranks hosted by this process. All of them in the default single-process
-    // mode; exactly one (this process's MPI rank) in infiniccl_adapter mode.
+    // Ranks hosted by this process. All of them in the default and standalone
+    // CCL single-process modes; exactly one in the legacy standalone MPI mode.
     std::vector<int> get_local_ranks() const;
 
     ~CommunicationGroup();
@@ -53,7 +53,7 @@ protected:
     infinicore::Device::Type device_type_;
     std::vector<infinicclComm_t> communicators_;
 
-    // Multi-process (MPI) mode driven by the standalone InfiniCCL library.
+    // Standalone InfiniCCL adapter mode.
     bool use_infiniccl_adapter_ = false;
     int local_rank_ = 0;
 };

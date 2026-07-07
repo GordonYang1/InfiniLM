@@ -454,10 +454,11 @@ void RankWorker::thread_loop() {
                             }
                         }
 
-                        // In multi-process (standalone InfiniCCL) mode, ranks
+                        // In legacy multi-process (standalone InfiniCCL) mode, ranks
                         // other than 0 also need the sampled tokens to drive
                         // their local generation loop: broadcast from rank 0.
-                        if (distributed::infiniccl_adapter::enabled() && rank_info_.tp_size > 1) {
+                        if (distributed::infiniccl_adapter::enabled() &&
+                            distributed::infiniccl_adapter::mpi_mode() && rank_info_.tp_size > 1) {
                             if (rank_info_.tp_rank != 0) {
                                 output_ids = infinicore::Tensor::empty({n_req}, infinicore::DataType::I64, rank_info_.device);
                             }

@@ -1,22 +1,21 @@
-"""SPMD driver for tensor-parallel inference over the standalone InfiniCCL library.
+"""Tensor-parallel inference over the standalone InfiniCCL library.
 
-Every tensor-parallel rank is a separate MPI process running this same script
-(InfiniCCL follows the MPI process model, unlike InfiniCore's built-in infiniccl,
-which hosts all ranks in one process). Rank 0 samples; the sampled token ids are
-broadcast to the other ranks inside the engine, so all processes stay in lockstep.
+The default standalone InfiniCCL path uses InfiniLM's normal single-process
+execution model: one process hosts every tensor-parallel rank, and each rank
+worker thread owns one standalone InfiniCCL communicator initialized through the
+native CCL `GetUniqueId` + `CommInitRank` flow.
 
-Launch (2 ranks sharing one local GPU is fine; the engine wraps device ids):
+Launch:
 
     cd InfiniLM
     export PYTHONPATH=$PWD/python
     export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$HOME/.infini/lib:$LD_LIBRARY_PATH
-    mpirun -np 2 --oversubscribe \
-        -x INFINILM_USE_INFINICCL=1 \
-        -x INFINICCL_LIB=$HOME/ninetoothed/InfiniCCL/install/lib/libinfiniccl.so \
-        -x LD_LIBRARY_PATH -x PYTHONPATH \
-        python examples/test_infiniccl_dist.py --model ~/models/Qwen3-0.6B --tp 2
+    export INFINILM_USE_INFINICCL=1
+    export INFINICCL_LIB=$HOME/ninetoothed/InfiniCCL/install/lib/libinfiniccl.so
+    python examples/test_infiniccl_dist.py --model ~/models/Qwen3-0.6B --tp 2
 
-Greedy decoding (top_k=1) keeps every rank's generation identical.
+Set INFINILM_INFINICCL_COMM_MODE=mpi only for the legacy one-process-per-rank
+experiment, launched with `mpirun -np <tp>`.
 """
 
 import argparse
@@ -31,17 +30,43 @@ def rank0_print(*args, **kwargs):
         print(*args, **kwargs, flush=True)
 
 
+def comm_mode(env=os.environ):
+    return env.get("INFINILM_INFINICCL_COMM_MODE", "ccl_single_process")
+
+
+def validate_launch(tp, env=os.environ):
+    if tp <= 1:
+        return
+    if env.get("INFINILM_USE_INFINICCL") != "1":
+        raise SystemExit("tp > 1 requires INFINILM_USE_INFINICCL=1")
+
+    mode = comm_mode(env)
+    if mode == "ccl_single_process":
+        return
+    if mode == "mpi":
+        world_size = int(env.get("OMPI_COMM_WORLD_SIZE", "1"))
+        if world_size != tp:
+            raise SystemExit(
+                f"INFINILM_INFINICCL_COMM_MODE=mpi requires `mpirun -np {tp}` "
+                f"(current OMPI_COMM_WORLD_SIZE={world_size})"
+            )
+        return
+    raise SystemExit(
+        "INFINILM_INFINICCL_COMM_MODE must be `ccl_single_process` or `mpi`"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, help="Model directory (HF layout)")
-    parser.add_argument("--tp", type=int, default=2, help="Tensor parallel size (= mpirun -np)")
+    parser.add_argument("--tp", type=int, default=2, help="Tensor parallel size")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--max-new-tokens", type=int, default=64)
     parser.add_argument(
         "--max-cache-len",
         type=int,
         default=1024,
-        help="Static KV cache length (kept small: 2 ranks share one 6GB GPU locally)",
+        help="Static KV cache length",
     )
     parser.add_argument(
         "--prompt",
@@ -50,11 +75,7 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.tp > 1 and os.environ.get("INFINILM_USE_INFINICCL") != "1":
-        raise SystemExit(
-            "tp > 1 requires INFINILM_USE_INFINICCL=1 and an mpirun launch; "
-            "see the module docstring"
-        )
+    validate_launch(args.tp)
 
     from infinilm.llm.llm import LLM
 
@@ -87,7 +108,7 @@ def main():
         rank0_print(
             f"\n[{n_tokens} tokens in {t2 - t1:.2f}s, "
             f"{n_tokens / max(t2 - t1, 1e-9):.2f} tok/s, tp={args.tp}, "
-            f"comm=standalone InfiniCCL (OMPI)]"
+            f"comm=standalone InfiniCCL ({comm_mode(os.environ)})]"
         )
 
 
